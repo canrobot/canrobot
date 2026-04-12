@@ -14,6 +14,7 @@
         .listening { animation: pulse 1.2s infinite; background-color: #ef4444 !important; transform: scale(1.1); box-shadow: 0 0 20px rgba(239,68,68,0.5); }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        .analyzing { color: #f59e0b !important; font-weight: bold; }
     </style>
 </head>
 <body class="flex flex-col h-full">
@@ -21,14 +22,15 @@
     <header class="px-4 py-3 border-b border-sky-200 bg-white flex justify-between items-center shadow-sm shrink-0">
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl"><i class="fas fa-robot"></i></div>
-            <div><h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇</h1><p class="text-[10px] text-slate-400 font-bold mt-1">ALWAYS-ON VOICE MODE</p></div>
+            <div><h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇</h1><p class="text-[10px] text-slate-400 font-bold mt-1">AI FLEET STABILIZED MODE</p></div>
         </div>
         <div id="connection-status" class="flex items-center space-x-1 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
             <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span class="text-[10px] text-emerald-600 font-bold">연결됨</span>
+            <span class="text-[10px] text-emerald-600 font-bold">안정화됨</span>
         </div>
     </header>
 
+    <!-- 카메라 영역 -->
     <section class="relative w-full bg-slate-900 aspect-video shrink-0 shadow-md flex justify-center items-center overflow-hidden">
         <div class="absolute top-2 left-2 z-10">
             <select id="camera-selector" class="bg-black/70 text-white text-[11px] font-bold py-1 px-2 rounded-md border border-slate-600 focus:outline-none">
@@ -40,10 +42,12 @@
         <div class="text-slate-500 text-center"><i class="fas fa-video-slash text-4xl mb-2"></i><p class="text-xs font-bold">CAMERA OFFLINE</p></div>
     </section>
 
+    <!-- 채팅 및 답변 로그 -->
     <main id="chat-history" class="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50 no-scrollbar">
-        <div class="text-center"><span class="text-[10px] bg-slate-200 text-slate-500 px-3 py-1 rounded-full font-bold">대화가 시작되면 로봇의 목소리가 들립니다</span></div>
+        <div class="text-center"><span class="text-[10px] bg-slate-200 text-slate-500 px-3 py-1 rounded-full font-bold">시스템이 준비되었습니다</span></div>
     </main>
 
+    <!-- 하단 음성 컨트롤 -->
     <footer class="p-4 bg-white border-t border-slate-200 shadow-lg">
         <div class="flex flex-col items-center space-y-3">
             <div id="voice-status" class="text-xs font-bold text-slate-400">마이크를 눌러 대화를 시작하세요</div>
@@ -54,8 +58,8 @@
                 </button>
                 
                 <div class="flex-1 relative">
-                    <input type="text" id="text-input" placeholder="또는 직접 입력..." class="w-full bg-slate-100 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200">
-                    <button id="send-btn" class="absolute right-2 top-1/2 -translate-y-1/2 text-sky-500"><i class="fas fa-paper-plane text-xl"></i></button>
+                    <input type="text" id="text-input" placeholder="메시지를 입력하세요..." class="w-full bg-slate-100 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200">
+                    <button id="send-btn" class="absolute right-2 top-1/2 -translate-y-1/2 text-sky-500 p-2"><i class="fas fa-paper-plane text-xl"></i></button>
                 </div>
             </div>
         </div>
@@ -65,19 +69,21 @@
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwDaArFRICsT8FYy5SqlgH63fNtM7GFOu-GZ7R1YE20FIMsfREotYZsIqPgG4EpUMzE/exec";
         let lastMsg = "";
         let isVoiceMode = false;
+        let isSpeaking = false;
         
         const chatHistory = document.getElementById('chat-history');
         const micBtn = document.getElementById('mic-btn');
         const voiceStatus = document.getElementById('voice-status');
         const textInput = document.getElementById('text-input');
 
-        // 1. 음성 인식 설정 (연속 모드 핵심)
+        // 🎙️ 음성 인식 엔진 설정
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
         if (recognition) {
             recognition.lang = 'ko-KR';
             recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
 
             micBtn.onclick = () => {
                 if (!isVoiceMode) {
@@ -89,15 +95,30 @@
 
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
+                if (!transcript.trim()) return;
+                
                 addChat("나", transcript);
                 sendToBrain(transcript);
-                voiceStatus.innerText = "로봇의 대답을 기다리는 중...";
+                
+                voiceStatus.innerText = "분석 중...";
+                voiceStatus.classList.add('analyzing');
+            };
+
+            recognition.onerror = (event) => {
+                console.log("Speech recognition error:", event.error);
+                if (isVoiceMode) {
+                    setTimeout(() => { try { recognition.start(); } catch(e) {} }, 500);
+                }
             };
 
             recognition.onend = () => {
-                // 음성 모드가 켜져 있다면, 인식이 끝난 후 로직에 따라 다시 시작됨 (speak 함수 끝에서 호출)
-                if (isVoiceMode && !window.speechSynthesis.speaking) {
-                    setTimeout(() => { if(isVoiceMode) recognition.start(); }, 500);
+                // 음성 모드이며 로봇이 말하는 중이 아닐 때만 다시 시작
+                if (isVoiceMode && !isSpeaking) {
+                    setTimeout(() => { 
+                        if (isVoiceMode && !isSpeaking) {
+                            try { recognition.start(); } catch(e) {}
+                        }
+                    }, 500);
                 }
             };
         }
@@ -106,19 +127,21 @@
             isVoiceMode = true;
             micBtn.classList.add('listening');
             voiceStatus.innerText = "듣고 있습니다... 말씀해 주세요";
-            voiceStatus.classList.add('text-red-500');
-            // 브라우저 오디오 잠금 해제 (빈 소리 재생)
+            voiceStatus.classList.remove('analyzing');
+            
+            // 모바일 오디오 잠금 해제
             const utter = new SpeechSynthesisUtterance("");
             window.speechSynthesis.speak(utter);
-            recognition.start();
+            
+            try { recognition.start(); } catch(e) {}
         }
 
         function stopVoiceMode() {
             isVoiceMode = false;
             micBtn.classList.remove('listening');
             voiceStatus.innerText = "마이크가 꺼졌습니다";
-            voiceStatus.classList.remove('text-red-500');
-            recognition.stop();
+            voiceStatus.classList.remove('analyzing');
+            try { recognition.stop(); } catch(e) {}
         }
 
         async function sendToBrain(query) {
@@ -131,7 +154,10 @@
                 const data = await response.text();
                 const [state, msg] = data.split('|');
 
-                if (msg && msg !== lastMsg && msg !== "-" && msg !== "") {
+                // 🤖 기계어 필터링 (D:0.0, CMD: 등 제외)
+                const isCommand = /^[DA]:|^CMD:|^Event:/.test(msg);
+
+                if (msg && msg !== lastMsg && msg !== "-" && msg !== "" && !isCommand) {
                     addChat("깡통로봇", msg);
                     lastMsg = msg;
                     speak(msg);
@@ -143,29 +169,34 @@
             const div = document.createElement('div');
             div.className = sender === "나" ? "flex justify-end mb-2" : "flex items-start space-x-2 mb-2 mt-4";
             div.innerHTML = sender === "나" 
-                ? `<div class="bg-sky-500 text-white p-3 rounded-2xl rounded-tr-sm text-sm max-w-[85%]">${text}</div>`
+                ? `<div class="bg-sky-500 text-white p-3 rounded-2xl rounded-tr-sm text-sm max-w-[85%] shadow-sm">${text}</div>`
                 : `<div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm"><i class="fas fa-robot"></i></div>
-                   <div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-sm text-sm max-w-[85%] shadow-sm">${text}</div>`;
+                   <div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-sm text-sm max-w-[85%] shadow-sm leading-relaxed">${text}</div>`;
             chatHistory.appendChild(div);
             chatHistory.scrollTop = chatHistory.scrollHeight;
         }
 
-        // 2. 스마트폰 스피커로 로봇의 대답 읽어주기 (핵심)
+        // 🔊 로봇 답변 음성 출력
         function speak(text) {
-            // 인식 중이면 잠시 멈춤
-            if (isVoiceMode) recognition.stop();
+            isSpeaking = true;
+            if (recognition) try { recognition.stop(); } catch(e) {} // 말하는 동안은 귀를 닫음
             
             const cleanText = text.replace(/[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ.,!?~\'-]/g, '').replace(/치익-|삐빅/g, "").trim();
             const utter = new SpeechSynthesisUtterance(cleanText);
             utter.lang = 'ko-KR';
-            utter.rate = 1.1; 
+            utter.rate = 1.1;
             utter.pitch = 1.1;
 
             utter.onend = () => {
-                // 로봇의 말이 끝나면 다시 마이크를 열어 대화를 이어감 (상시 모드)
+                isSpeaking = false;
                 if (isVoiceMode) {
                     voiceStatus.innerText = "듣고 있습니다... 말씀해 주세요";
-                    recognition.start();
+                    voiceStatus.classList.remove('analyzing');
+                    setTimeout(() => { 
+                        if (isVoiceMode) {
+                            try { recognition.start(); } catch(e) {}
+                        }
+                    }, 500);
                 }
             };
 
@@ -178,6 +209,8 @@
                 addChat("나", textInput.value);
                 sendToBrain(textInput.value);
                 textInput.value = "";
+                voiceStatus.innerText = "분석 중...";
+                voiceStatus.classList.add('analyzing');
             }
         };
 
