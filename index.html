@@ -8,60 +8,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap');
-        
-        :root {
-            --primary-color: #0ea5e9;
-            --bg-color: #f8fafc;
-            --text-color: #334155;
-        }
-
-        body { 
-            background-color: var(--bg-color); 
-            color: var(--text-color); 
-            font-family: 'Noto Sans KR', sans-serif;
-            margin: 0;
-            height: 100vh;
-            overflow: hidden;
-            -webkit-tap-highlight-color: transparent;
-        }
-
+        :root { --primary-color: #0ea5e9; --bg-color: #f8fafc; --text-color: #334155; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Noto Sans KR', sans-serif; margin: 0; height: 100vh; overflow: hidden; -webkit-tap-highlight-color: transparent; }
         .title-font { font-family: 'Jua', sans-serif; }
-        
-        /* 마이크 작동 애니메이션 */
-        .listening { 
-            animation: pulse 1.2s infinite; 
-            background-color: #ef4444 !important; 
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); 
-            color: white !important;
-            transform: scale(1.1);
-        }
-        @keyframes pulse { 
-            0% { transform: scale(1); } 
-            50% { transform: scale(1.15); } 
-            100% { transform: scale(1); } 
-        }
-        
+        .listening { animation: pulse 1.2s infinite; background-color: #ef4444 !important; transform: scale(1.1); box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); color: white !important; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* 카메라 피드 플레이스홀더용 패턴 */
-        .camera-offline {
-            background-image: repeating-linear-gradient(45deg, #1f2937 25%, transparent 25%, transparent 75%, #1f2937 75%, #1f2937), repeating-linear-gradient(45deg, #1f2937 25%, #111827 25%, #111827 75%, #1f2937 75%, #1f2937);
-            background-position: 0 0, 10px 10px;
-            background-size: 20px 20px;
-        }
+        .camera-offline { background-image: repeating-linear-gradient(45deg, #1f2937 25%, transparent 25%, transparent 75%, #1f2937 75%, #1f2937), repeating-linear-gradient(45deg, #1f2937 25%, #111827 25%, #111827 75%, #1f2937 75%, #1f2937); background-position: 0 0, 10px 10px; background-size: 20px 20px; }
     </style>
 </head>
 <body class="flex flex-col h-full">
 
-    <!-- 1. 헤더 영역 -->
     <header class="px-4 py-3 border-b border-sky-200 bg-white flex justify-between items-center shadow-sm z-20 shrink-0">
         <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner">
-                <i class="fas fa-robot"></i>
-            </div>
+            <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner"><i class="fas fa-robot"></i></div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.1.0</span></h1>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.2.0</span></h1>
                 <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">AI FLEET COMMAND CENTER</p>
             </div>
         </div>
@@ -73,94 +36,43 @@
         </div>
     </header>
 
-    <!-- 2. 실시간 카메라 영상 영역 -->
     <section class="relative w-full bg-slate-900 aspect-video shrink-0 shadow-md border-b-2 border-slate-800 flex flex-col justify-center items-center camera-offline overflow-hidden">
-        
         <div class="absolute top-2 left-2 z-10">
-            <select id="camera-selector" class="bg-black/60 text-white text-xs font-bold py-1 px-2 rounded-md border border-slate-600 backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-sky-500">
+            <select id="camera-selector" class="bg-black/60 text-white text-xs font-bold py-1 px-2 rounded-md border border-slate-600 backdrop-blur-sm focus:outline-none">
                 <option value="offline">📺 카메라 선택 안함</option>
                 <option value="kobuki">🐢 고부기 (거실)</option>
                 <option value="walle">🤖 Wall-E (안방)</option>
                 <option value="turtlebot">🐞 터틀봇 (주방)</option>
             </select>
         </div>
-
-        <div class="absolute top-2 right-2 z-10 flex items-center space-x-1">
-            <span id="cam-status-text" class="text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded">NO SIGNAL</span>
-        </div>
-
-        <img id="camera-feed" src="" class="w-full h-full object-contain hidden" alt="Video Stream">
-        
-        <div id="camera-offline-icon" class="text-center text-slate-500 opacity-60">
-            <i class="fas fa-video-slash text-4xl mb-2"></i>
-            <p class="text-xs font-bold tracking-wider">CAMERA OFFLINE</p>
-        </div>
+        <div class="absolute top-2 right-2 z-10 flex items-center space-x-1"><span id="cam-status-text" class="text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded">NO SIGNAL</span></div>
+        <img id="camera-feed" src="" class="w-full h-full object-contain hidden">
+        <div id="camera-offline-icon" class="text-center text-slate-500 opacity-60"><i class="fas fa-video-slash text-4xl mb-2"></i><p class="text-xs font-bold tracking-wider">CAMERA OFFLINE</p></div>
     </section>
 
-    <!-- 3. 채팅 (명령/응답) 로그 영역 -->
     <main id="chat-history" class="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50 no-scrollbar">
         <div class="text-left flex items-start space-x-2">
-            <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1">
-                <i class="fas fa-robot"></i>
-            </div>
-            <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">
-                사령관님 환영합니다! 🦾<br><b>채팅 가시성이 강화된 v11.1.0</b>입니다. 로봇의 답변이 도착하면 여기에 즉시 나타납니다.
+            <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1"><i class="fas fa-robot"></i></div>
+            <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%]">
+                사령관님 환영합니다! 🦾<br><b>데이터 실종 문제를 해결한 v11.2.0</b>입니다. 답장이 오지 않는다면 잠시만 기다려주세요.
             </div>
         </div>
     </main>
 
-    <!-- 4. 하단 입력 및 음성 컨트롤 영역 -->
     <footer class="p-3 bg-white border-t border-slate-200 shadow-lg shrink-0 pb-safe">
         <div class="flex items-center space-x-2">
-            <!-- 🎙️ 거대한 음성 인식 마이크 버튼 -->
             <button id="mic-btn" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg active:scale-90 transition-all duration-300">
                 <i class="fas fa-microphone"></i>
             </button>
-            
             <div class="flex-1 relative">
-                <input type="text" id="text-input" placeholder="음성으로 말하거나 입력..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all text-slate-700 shadow-inner">
-                <button id="send-btn" class="absolute right-1 top-1/2 transform -translate-y-1/2 w-10 h-10 flex items-center justify-center text-sky-500 hover:text-sky-600 active:scale-90 transition-transform">
-                    <i class="fas fa-paper-plane text-lg"></i>
-                </button>
+                <input type="text" id="text-input" placeholder="메시지를 입력하세요..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all text-slate-700 shadow-inner">
+                <button id="send-btn" class="absolute right-1 top-1/2 transform -translate-y-1/2 w-10 h-10 flex items-center justify-center text-sky-500 active:scale-90"><i class="fas fa-paper-plane text-lg"></i></button>
             </div>
         </div>
     </footer>
 
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwDaArFRICsT8FYy5SqlgH63fNtM7GFOu-GZ7R1YE20FIMsfREotYZsIqPgG4EpUMzE/exec";
-        
-        const cameraStreams = {
-            "offline": "",
-            "kobuki": "http://192.168.1.225:8080/stream?topic=/camera/image_raw",
-            "walle": "http://192.168.1.100:8080/stream?topic=/camera/image_raw",
-            "turtlebot": "http://192.168.1.101:8080/stream?topic=/camera/image_raw"
-        };
-
-        const camSelector = document.getElementById('camera-selector');
-        const camFeed = document.getElementById('camera-feed');
-        const camOfflineIcon = document.getElementById('camera-offline-icon');
-        const camStatusText = document.getElementById('cam-status-text');
-
-        camSelector.addEventListener('change', (e) => {
-            const selected = e.target.value;
-            const streamUrl = cameraStreams[selected];
-
-            if (selected === "offline" || !streamUrl) {
-                camFeed.classList.add('hidden');
-                camOfflineIcon.classList.remove('hidden');
-                camStatusText.textContent = "NO SIGNAL";
-                camStatusText.className = "text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded";
-                camFeed.src = "";
-            } else {
-                camFeed.src = streamUrl;
-                camFeed.classList.remove('hidden');
-                camOfflineIcon.classList.add('hidden');
-                camStatusText.textContent = "LIVE REC";
-                camStatusText.className = "text-[9px] text-red-500 font-mono bg-black/60 px-1.5 py-0.5 rounded animate-pulse";
-            }
-        });
-
-        // 🎙️ 음성 인식 (STT) 및 챗봇 로직 (충돌 요인 제거)
         let lastMsg = "";
         const chatHistory = document.getElementById('chat-history');
         const micBtn = document.getElementById('mic-btn');
@@ -170,100 +82,66 @@
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
             recognition.lang = 'ko-KR';
-            recognition.continuous = false;
-            recognition.interimResults = false;
-
-            micBtn.onclick = () => {
-                try {
-                    recognition.start();
-                    micBtn.classList.add('listening');
-                    textInput.placeholder = "듣고 있습니다. 말씀해 주세요...";
-                    if (navigator.vibrate) navigator.vibrate(50);
-                } catch (e) {
-                    recognition.stop();
-                    console.log("Recognition reset");
-                }
-            };
-
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                addChat("나", transcript);
-                sendToBrain(transcript);
-                resetMicBtn();
-            };
-
-            recognition.onerror = () => resetMicBtn();
-            recognition.onend = () => resetMicBtn();
-            
-            function resetMicBtn() {
-                micBtn.classList.remove('listening');
-                textInput.placeholder = "음성으로 말하거나 입력하세요...";
-            }
-        } else {
-            micBtn.style.opacity = "0.5";
-            micBtn.onclick = () => alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
+            micBtn.onclick = () => { try { recognition.start(); micBtn.classList.add('listening'); textInput.placeholder = "듣고 있습니다..."; } catch (e) { recognition.stop(); } };
+            recognition.onresult = (e) => { const text = e.results[0][0].transcript; addChat("나", text); sendToBrain(text); resetMic(); };
+            recognition.onerror = () => resetMic();
+            recognition.onend = () => resetMic();
+            function resetMic() { micBtn.classList.remove('listening'); textInput.placeholder = "메시지를 입력하세요..."; }
         }
 
         async function sendToBrain(query) {
-            try {
-                await fetch(`${GAS_URL}?query=${encodeURIComponent(query)}`);
-            } catch (e) {
-                console.error("전송 에러", e);
-            }
+            try { 
+                textInput.placeholder = "분석 중... (로봇이 대답을 준비합니다)";
+                // 브레인에게 질문 전송
+                await fetch(`${GAS_URL}?query=${encodeURIComponent(query)}&t=${Date.now()}`, { cache: 'no-store' });
+            } catch (e) { console.error("전송 에러", e); }
         }
 
-        // 🔄 브레인의 응답 읽기 및 채팅창 출력 (v11.1.0 핵심 로직)
+        // 🔄 로봇 답장 감시 (v11.2.0 정밀화)
         async function checkResponse() {
             try {
-                const response = await fetch(`${GAS_URL}?action=read`);
+                // 💡 [핵심] 쿼리 주소 뒤에 타임스탬프(t)를 붙여 브라우저 캐시를 무력화합니다.
+                const response = await fetch(`${GAS_URL}?action=read&t=${Date.now()}`, { cache: 'no-store' });
                 const data = await response.text();
-                const [state, msg] = data.split('|');
+                
+                // 데이터 형식이 state|msg 인지 확인
+                if (data.includes('|')) {
+                    const parts = data.split('|');
+                    const state = parts[0].trim();
+                    const msg = parts.slice(1).join('|').trim(); // 메시지 내부에 | 가 있을 경우 대비
 
-                // 🤖 기계어 필터링 (D:0.0, A:0.0, CMD:, Event: 제외)
-                const isMachineData = /^[DA]:|^CMD:|^Event:/.test(msg);
+                    const isMachineData = /^[DA]:|^CMD:|^Event:/.test(msg);
 
-                // 새로운 메시지가 포착되면 즉시 채팅창에 추가
-                if (msg && msg !== lastMsg && msg !== "-" && msg !== "" && !isMachineData) {
-                    addChat("깡통로봇", msg);
-                    lastMsg = msg;
+                    // 새로운 메시지가 포착되었고, 무의미한 데이터가 아닌 경우 출력
+                    if (msg && msg !== lastMsg && msg !== "-" && msg !== "" && !isMachineData) {
+                        addChat("깡통로봇", msg);
+                        lastMsg = msg;
+                        textInput.placeholder = "메시지를 입력하세요...";
+                    }
                 }
-            } catch (e) {}
+            } catch (e) { console.log("응답 확인 에러:", e); }
         }
 
         function addChat(sender, text) {
             const div = document.createElement('div');
             if (sender === "나") {
                 div.className = "text-right flex justify-end mb-2";
-                div.innerHTML = `
-                    <div class="inline-block p-3 rounded-2xl rounded-tr-sm text-sm bg-sky-500 text-white shadow-md max-w-[85%] leading-relaxed text-left">
-                        ${text}
-                    </div>
-                `;
+                div.innerHTML = `<div class="inline-block p-3 rounded-2xl rounded-tr-sm text-sm bg-sky-500 text-white shadow-md max-w-[85%] leading-relaxed text-left">${text}</div>`;
             } else {
                 div.className = "text-left flex items-start space-x-2 mb-2 mt-4 animate-in fade-in slide-in-from-left-2 duration-300";
                 div.innerHTML = `
-                    <div class="w-8 h-8 shrink-0 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">
-                        ${text}
-                    </div>
+                    <div class="w-8 h-8 shrink-0 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1"><i class="fas fa-robot"></i></div>
+                    <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">${text}</div>
                 `;
             }
             chatHistory.appendChild(div);
             setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50);
         }
 
-        document.getElementById('send-btn').onclick = () => {
-            if (textInput.value.trim() !== "") {
-                addChat("나", textInput.value);
-                sendToBrain(textInput.value);
-                textInput.value = "";
-            }
-        };
-
+        document.getElementById('send-btn').onclick = () => { if (textInput.value.trim() !== "") { addChat("나", textInput.value); sendToBrain(textInput.value); textInput.value = ""; } };
         textInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('send-btn').click(); });
 
+        // 2.5초 간격으로 로봇의 입을 바라봅니다.
         setInterval(checkResponse, 2500);
     </script>
 </body>
