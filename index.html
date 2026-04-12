@@ -2,29 +2,68 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>깡통로봇 관제탑 🤖</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap');
+        
         :root { --primary-color: #0ea5e9; --bg-color: #f8fafc; --text-color: #334155; }
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Noto Sans KR', sans-serif; margin: 0; height: 100vh; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+        
+        /* 모바일 화면 높이 대응 (키보드 대응) */
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            font-family: 'Noto Sans KR', sans-serif; 
+            margin: 0; 
+            height: 100vh; /* 기본 */
+            height: 100dvh; /* 최신 모바일 대응 */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+
         .title-font { font-family: 'Jua', sans-serif; }
-        .listening { animation: pulse 1.2s infinite; background-color: #ef4444 !important; transform: scale(1.1); box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); color: white !important; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+        
+        .listening { 
+            animation: pulse 1.2s infinite; 
+            background-color: #ef4444 !important; 
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); 
+            color: white !important;
+            transform: scale(1.1);
+        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .camera-offline { background-image: repeating-linear-gradient(45deg, #1f2937 25%, transparent 25%, transparent 75%, #1f2937 75%, #1f2937), repeating-linear-gradient(45deg, #1f2937 25%, #111827 25%, #111827 75%, #1f2937 75%, #1f2937); background-position: 0 0, 10px 10px; background-size: 20px 20px; }
+
+        /* 채팅창 자동 스크롤 영역 */
+        #chat-history {
+            flex: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        /* 하단바 강제 고정 스타일 */
+        footer {
+            position: relative;
+            z-index: 50;
+            background: white;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+            padding-bottom: env(safe-area-inset-bottom); /* 아이폰 하단 바 대응 */
+        }
     </style>
 </head>
-<body class="flex flex-col h-full">
+<body>
 
-    <header class="px-4 py-3 border-b border-sky-200 bg-white flex justify-between items-center shadow-sm z-20 shrink-0">
+    <!-- 1. 헤더 (상단 고정) -->
+    <header class="px-4 py-3 border-b border-sky-200 bg-white flex justify-between items-center shrink-0 z-50">
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner"><i class="fas fa-robot"></i></div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.5.0</span></h1>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.6.0</span></h1>
                 <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">AI FLEET COMMAND CENTER</p>
             </div>
         </div>
@@ -37,31 +76,33 @@
         </div>
     </header>
 
-    <section class="relative w-full bg-slate-900 aspect-video shrink-0 shadow-md border-b-2 border-slate-800 flex flex-col justify-center items-center camera-offline overflow-hidden">
+    <!-- 2. 실시간 카메라 (상단 유지) -->
+    <section class="relative w-full bg-slate-900 aspect-video shrink-0 border-b-2 border-slate-800 flex flex-col justify-center items-center camera-offline overflow-hidden">
         <div class="absolute top-2 left-2 z-10">
-            <select id="camera-selector" class="bg-black/60 text-white text-xs font-bold py-1 px-2 rounded-md border border-slate-600 backdrop-blur-sm focus:outline-none">
+            <select id="camera-selector" class="bg-black/60 text-white text-[11px] font-bold py-1 px-2 rounded-md border border-slate-600 backdrop-blur-sm focus:outline-none">
                 <option value="offline">📺 카메라 선택</option>
                 <option value="kobuki">🐢 고부기 (거실)</option>
                 <option value="walle">🤖 Wall-E (안방)</option>
             </select>
         </div>
-        <div class="absolute top-2 right-2 z-10"><span id="cam-status-text" class="text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded">NO SIGNAL</span></div>
         <img id="camera-feed" src="" class="w-full h-full object-contain hidden">
         <div id="camera-offline-icon" class="text-center text-slate-500 opacity-60"><i class="fas fa-video-slash text-4xl mb-2"></i><p class="text-xs font-bold tracking-wider">CAMERA OFFLINE</p></div>
     </section>
 
-    <main id="chat-history" class="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50 no-scrollbar">
+    <!-- 3. 채팅 영역 (이 부분만 스크롤됨) -->
+    <main id="chat-history" class="p-4 space-y-4 bg-slate-50 no-scrollbar">
         <div class="text-left flex items-start space-x-2">
             <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1"><i class="fas fa-robot"></i></div>
             <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%]">
-                사령관님, <b>최종 안정화 버전 v11.5.0</b>입니다.<br>마이크를 한 번 누르시면 음성 엔진이 깨어납니다! 🦾
+                사령관님, <b>입력창이 고정된 v11.6.0</b>입니다.<br>이제 대화가 길어져도 마이크 버튼이 사라지지 않아요! 🦾
             </div>
         </div>
     </main>
 
-    <footer class="p-3 bg-white border-t border-slate-200 shadow-lg shrink-0 pb-safe">
-        <div class="flex items-center space-x-2">
-            <button id="mic-btn" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg active:scale-90 transition-all duration-300">
+    <!-- 4. 하단 입력바 (절대 사라지지 않음) -->
+    <footer class="p-3 shrink-0">
+        <div class="flex items-center space-x-2 max-w-4xl mx-auto">
+            <button id="mic-btn" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg active:scale-90 transition-all">
                 <i class="fas fa-microphone"></i>
             </button>
             <div class="flex-1 relative">
@@ -81,145 +122,75 @@
         const textInput = document.getElementById('text-input');
         const syncTimeDisplay = document.getElementById('sync-time');
 
-        // 🎙️ 음성 인식 (STT) 로직
+        // STT 로직
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition = null;
         if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
+            const recognition = new SpeechRecognition();
             recognition.lang = 'ko-KR';
-            recognition.continuous = false;
-
             micBtn.onclick = () => {
-                // 🔊 최초 클릭 시 오디오 엔진 활성화
-                if(!audioEnabled) {
-                    const silent = new SpeechSynthesisUtterance("");
-                    window.speechSynthesis.speak(silent);
-                    audioEnabled = true;
-                }
-                
-                try {
-                    recognition.start();
-                    micBtn.classList.add('listening');
-                    textInput.placeholder = "깡통로봇이 듣고 있어요...";
-                } catch (e) {
-                    recognition.stop();
-                }
+                if(!audioEnabled) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); audioEnabled = true; }
+                try { recognition.start(); micBtn.classList.add('listening'); } catch (e) { recognition.stop(); }
             };
-
-            recognition.onresult = (e) => {
-                const text = e.results[0][0].transcript;
-                addChat("나", text);
-                sendToBrain(text);
-                resetMic();
-            };
-            recognition.onerror = () => resetMic();
-            recognition.onend = () => resetMic();
-            function resetMic() { micBtn.classList.remove('listening'); textInput.placeholder = "메시지를 입력하세요..."; }
+            recognition.onresult = (e) => { const text = e.results[0][0].transcript; addChat("나", text); sendToBrain(text); };
+            recognition.onend = () => micBtn.classList.remove('listening');
         }
 
         async function sendToBrain(query) {
-            try {
-                textInput.placeholder = "깡통로봇이 생각 중입니다...";
-                // No-cache 파라미터 추가
-                await fetch(`${GAS_URL}?query=${encodeURIComponent(query)}&cache_bust=${Date.now()}`, { mode: 'no-cors' });
-            } catch (e) { console.error("전송 에러", e); }
+            try { await fetch(`${GAS_URL}?query=${encodeURIComponent(query)}&t=${Date.now()}`, { mode: 'no-cors' }); } catch (e) {}
         }
 
-        // 🔄 로봇 답장 감시 (v11.5.0 정밀 수신 엔진)
         async function checkResponse() {
             try {
-                // 캐시를 완전히 무시하기 위한 타임스탬프 전략
                 const response = await fetch(`${GAS_URL}?action=read&t=${Date.now()}`);
-                const rawData = await response.text();
-                const data = rawData.trim();
-                
+                const data = (await response.text()).trim();
                 syncTimeDisplay.innerText = "Sync: " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-
                 if (!data || data === "" || data.includes("ONLINE")) return;
 
-                let msg = "";
-                // 1. 데이터 파싱: '상태|메시지' 구분자 처리
-                if (data.includes('|')) {
-                    const parts = data.split('|');
-                    // 마지막 파트가 실제 메시지일 확률이 높음
-                    msg = parts[parts.length - 1].trim();
-                } else {
-                    msg = data;
-                }
-
-                // 2. 기계어 필터링 강화
-                const isMachine = /^(D:|A:|CMD:|Event:|OK:)/.test(msg);
-                
-                // 3. 답변 출력 (중복 방지 및 유효성 검사)
-                if (msg && msg !== lastMsg && msg !== "-" && !isMachine) {
-                    // 처음 로딩 시 기존 환영 메시지와 겹치지 않게 방어
-                    if (lastMsg === "" && (msg.includes("v11.5.0") || msg.includes("환영합니다"))) {
-                        lastMsg = msg;
-                        return;
-                    }
-
-                    addChat("깡통로봇", msg);
-                    lastMsg = msg;
-                    textInput.placeholder = "메시지를 입력하세요...";
-                    
-                    // 🔊 음성 출력 시도 (활성화된 경우에만)
+                let msg = data.includes('|') ? data.split('|').pop().trim() : data;
+                if (msg && msg !== lastMsg && msg !== "-" && !/^(D:|A:|CMD:|Event:|OK:)/.test(msg)) {
+                    if (lastMsg === "" && (msg.includes("v11.6.0") || msg.includes("환영합니다"))) { lastMsg = msg; return; }
+                    addChat("깡통로봇", msg); lastMsg = msg;
                     if(audioEnabled) speak(msg);
                 }
-            } catch (e) { console.warn("수신 확인 중..."); }
+            } catch (e) {}
         }
 
-        // 🔊 음성 출력 엔진 (TTS)
         function speak(text) {
-            try {
-                const cleanText = text.replace(/[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ.,!?~\'-]/g, '').replace(/치익-|삐빅/g, "").trim();
-                if(!cleanText) return;
-
-                const utter = new SpeechSynthesisUtterance(cleanText);
-                utter.lang = 'ko-KR';
-                utter.rate = 1.05;
-                utter.pitch = 1.1;
-                window.speechSynthesis.speak(utter);
-            } catch (e) { console.error("TTS 오류:", e); }
+            const cleanText = text.replace(/[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ.,!?~\'-]/g, '').replace(/치익-|삐빅/g, "").trim();
+            if(!cleanText) return;
+            const utter = new SpeechSynthesisUtterance(cleanText);
+            utter.lang = 'ko-KR'; utter.rate = 1.05; utter.pitch = 1.1;
+            window.speechSynthesis.speak(utter);
         }
 
         function addChat(sender, text) {
             const div = document.createElement('div');
-            if (sender === "나") {
-                div.className = "text-right flex justify-end mb-2";
-                div.innerHTML = `<div class="inline-block p-3 rounded-2xl rounded-tr-sm text-sm bg-sky-500 text-white shadow-md max-w-[85%] leading-relaxed text-left">${text}</div>`;
-            } else {
-                div.className = "text-left flex items-start space-x-2 mb-2 mt-4 animate-in fade-in slide-in-from-left-2 duration-300";
-                div.innerHTML = `
-                    <div class="w-8 h-8 shrink-0 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1"><i class="fas fa-robot"></i></div>
-                    <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">${text}</div>
-                `;
-            }
+            div.className = sender === "나" ? "flex justify-end" : "flex items-start space-x-2 animate-in fade-in slide-in-from-left-2 duration-300";
+            div.innerHTML = sender === "나" 
+                ? `<div class="bg-sky-500 text-white p-3 rounded-2xl rounded-tr-sm text-sm max-w-[85%] shadow-sm">${text}</div>`
+                : `<div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shrink-0"><i class="fas fa-robot"></i></div>
+                   <div class="bg-white border border-slate-200 text-slate-700 p-3 rounded-2xl rounded-tl-sm text-sm max-w-[85%] shadow-sm leading-relaxed">${text}</div>`;
             chatHistory.appendChild(div);
-            setTimeout(() => { chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' }); }, 100);
+            // 최신 메시지로 스크롤 (강제)
+            chatHistory.scrollTop = chatHistory.scrollHeight;
         }
 
         document.getElementById('send-btn').onclick = () => { 
             if (textInput.value.trim() !== "") { 
                 if(!audioEnabled) { audioEnabled = true; window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); }
-                addChat("나", textInput.value); 
-                sendToBrain(textInput.value); 
-                textInput.value = ""; 
+                addChat("나", textInput.value); sendToBrain(textInput.value); textInput.value = ""; 
             } 
         };
         textInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('send-btn').click(); });
-
-        // 2초마다 시트를 감시합니다.
         setInterval(checkResponse, 2000);
 
-        // 카메라 선택 (기존 유지)
+        // 카메라 (기존)
         const cameraStreams = { "offline": "", "kobuki": "http://192.168.1.225:8080/stream?topic=/camera/image_raw", "walle": "http://192.168.1.100:8080/stream?topic=/camera/image_raw" };
         document.getElementById('camera-selector').addEventListener('change', (e) => {
-            const feed = document.getElementById('camera-feed');
-            const icon = document.getElementById('camera-offline-icon');
-            const status = document.getElementById('cam-status-text');
             const url = cameraStreams[e.target.value];
-            if (!url) { feed.classList.add('hidden'); icon.classList.remove('hidden'); status.innerText="NO SIGNAL"; status.className="text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded"; }
-            else { feed.src = url; feed.classList.remove('hidden'); icon.classList.add('hidden'); status.innerText="LIVE REC"; status.className="text-[9px] text-emerald-400 font-mono bg-black/60 px-1.5 py-0.5 rounded animate-pulse"; }
+            document.getElementById('camera-feed').src = url || "";
+            document.getElementById('camera-feed').className = url ? "w-full h-full object-contain" : "hidden";
+            document.getElementById('camera-offline-icon').className = url ? "hidden" : "text-center text-slate-500 opacity-60";
         });
     </script>
 </body>
