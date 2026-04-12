@@ -38,7 +38,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .camera-offline { background-image: repeating-linear-gradient(45deg, #1f2937 25%, transparent 25%, transparent 75%, #1f2937 75%, #1f2937), repeating-linear-gradient(45deg, #1f2937 25%, #111827 25%, #111827 75%, #1f2937 75%, #1f2937); background-position: 0 0, 10px 10px; background-size: 20px 20px; }
 
-        /* 채팅 영역 스크롤 설정 */
         #chat-history { 
             flex: 1; 
             overflow-y: auto; 
@@ -47,7 +46,6 @@
             scrollbar-width: none;
         }
 
-        /* 하단바 위치 고정 */
         footer { 
             position: relative; 
             z-index: 50; 
@@ -57,30 +55,34 @@
             flex-shrink: 0;
         }
 
-        /* 🔒 보안 게이트 스타일 */
-        #auth-overlay {
+        /* 🔒 보안 게이트 및 설정 모달 스타일 */
+        #auth-overlay, #settings-overlay {
             position: fixed; inset: 0; background: #0ea5e9; z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             color: white; padding: 20px; text-align: center;
+            transition: all 0.3s ease;
         }
+        #settings-overlay { background: rgba(15, 23, 42, 0.95); backdrop-blur: 10px; z-index: 1100; }
+        
         .pass-input {
             background: rgba(255,255,255,0.2); border: 2px solid white; border-radius: 12px;
             padding: 12px 20px; font-size: 24px; color: white; width: 160px; text-align: center;
             letter-spacing: 8px; outline: none; margin-top: 20px;
         }
+        .settings-input {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;
+            padding: 10px; color: white; width: 200px; text-align: center; margin-bottom: 10px; outline: none;
+        }
         .hidden { display: none !important; }
 
-        /* 🖥️ 데스크탑용 카메라 크기 제한 (v11.8.0 핵심 수정) */
         @media (min-width: 768px) {
-            #camera-section {
-                max-height: 300px; /* 데스크탑에서는 카메라가 300px을 넘지 않음 */
-            }
+            #camera-section { max-height: 300px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- 🔒 보안 게이트 영역 (비밀번호: 0314) -->
+    <!-- 🔒 보안 게이트 영역 -->
     <div id="auth-overlay">
         <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-4 text-4xl">
             <i class="fas fa-lock"></i>
@@ -91,25 +93,52 @@
         <button id="pw-btn" class="mt-6 bg-white text-sky-600 px-8 py-3 rounded-full font-bold shadow-lg active:scale-95 transition-transform">인증하기</button>
     </div>
 
-    <!-- 1. 헤더 (상단 고정) -->
+    <!-- ⚙️ 설정 모달 (비밀번호 변경) -->
+    <div id="settings-overlay" class="hidden">
+        <div class="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4 text-3xl">
+            <i class="fas fa-cog fa-spin"></i>
+        </div>
+        <h2 class="title-font text-2xl mb-4">지휘소 설정</h2>
+        
+        <div class="flex flex-col items-center space-y-2">
+            <p class="text-[10px] uppercase tracking-widest opacity-60">현재 비밀번호 확인</p>
+            <input type="password" id="current-pw-check" class="settings-input" maxlength="4" placeholder="현재 암호">
+            
+            <p class="text-[10px] uppercase tracking-widest opacity-60 mt-4">새 비밀번호 설정</p>
+            <input type="password" id="new-pw-input" class="settings-input" maxlength="4" placeholder="새 암호 (4자리)">
+            
+            <div class="flex space-x-2 mt-6">
+                <button onclick="closeSettings()" class="bg-slate-700 text-white px-6 py-2 rounded-full text-sm font-bold">취소</button>
+                <button id="save-pw-btn" class="bg-emerald-500 text-white px-6 py-2 rounded-full text-sm font-bold">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. 헤더 -->
     <header class="px-4 py-3 border-b border-sky-200 bg-white flex justify-between items-center shrink-0 z-50">
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner"><i class="fas fa-robot"></i></div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.8.0</span></h1>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.9.0</span></h1>
                 <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">AI FLEET COMMAND CENTER</p>
             </div>
         </div>
-        <div class="flex flex-col items-end">
-            <div class="flex items-center space-x-1 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
-                <div id="status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span class="text-[10px] text-emerald-600 font-bold">LIVE</span>
+        <div class="flex items-center space-x-3">
+            <div class="flex flex-col items-end">
+                <div class="flex items-center space-x-1 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
+                    <div id="status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="text-[10px] text-emerald-600 font-bold">LIVE</span>
+                </div>
+                <span id="sync-time" class="text-[8px] text-slate-400 font-mono mt-0.5">READY</span>
             </div>
-            <span id="sync-time" class="text-[8px] text-slate-400 font-mono mt-0.5">READY</span>
+            <!-- ⚙️ 설정 버튼 -->
+            <button onclick="openSettings()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                <i class="fas fa-cog"></i>
+            </button>
         </div>
     </header>
 
-    <!-- 2. 실시간 카메라 (반응형 높이 제한 적용) -->
+    <!-- 2. 실시간 카메라 -->
     <section id="camera-section" class="relative w-full bg-slate-900 aspect-video shrink-0 border-b-2 border-slate-800 flex flex-col justify-center items-center camera-offline overflow-hidden">
         <div class="absolute top-2 left-2 z-10">
             <select id="camera-selector" class="bg-black/60 text-white text-[11px] font-bold py-1 px-2 rounded-md border border-slate-600 backdrop-blur-sm focus:outline-none">
@@ -122,17 +151,17 @@
         <div id="camera-offline-icon" class="text-center text-slate-500 opacity-60"><i class="fas fa-video-slash text-4xl mb-2"></i><p class="text-xs font-bold tracking-wider">CAMERA OFFLINE</p></div>
     </section>
 
-    <!-- 3. 채팅 영역 (데스크탑에서도 잘 보이도록 높이 자동 조절) -->
+    <!-- 3. 채팅 영역 -->
     <main id="chat-history" class="p-4 space-y-4 bg-slate-50">
         <div class="text-left flex items-start space-x-2">
             <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1"><i class="fas fa-robot"></i></div>
             <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%]">
-                사령관님, 지휘소에 연결되었습니다. 🦾<br><b>데스크탑 최적화 v11.8.0</b>입니다.
+                사령관님, 지휘소에 연결되었습니다. 🦾<br>우측 상단 <b>톱니바퀴</b>를 눌러 암호를 변경할 수 있습니다.
             </div>
         </div>
     </main>
 
-    <!-- 4. 하단 입력바 (위치 고정) -->
+    <!-- 4. 하단 입력바 -->
     <footer class="p-3">
         <div class="flex items-center space-x-2 max-w-4xl mx-auto">
             <button id="mic-btn" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg active:scale-95 transition-all">
@@ -150,6 +179,7 @@
         let lastMsg = "";
         let audioEnabled = false;
         let isAuthorized = false;
+        let currentMasterPassword = "0314"; // 💡 암호 변수화
 
         // 🔐 인증 시스템
         const authOverlay = document.getElementById('auth-overlay');
@@ -157,22 +187,48 @@
         const pwBtn = document.getElementById('pw-btn');
 
         function checkPassword() {
-            if (pwInput.value === "0314") {
+            if (pwInput.value === currentMasterPassword) {
                 isAuthorized = true;
                 authOverlay.classList.add('hidden');
-                // 인증 성공 후 오디오 엔진 잠금 해제 시도
-                const silent = new SpeechSynthesisUtterance("");
-                window.speechSynthesis.speak(silent);
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
                 audioEnabled = true;
             } else {
                 pwInput.value = "";
-                pwInput.placeholder = "다시!";
+                pwInput.placeholder = "오답!";
                 if (navigator.vibrate) navigator.vibrate(200);
             }
         }
 
         pwBtn.onclick = checkPassword;
         pwInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
+
+        // ⚙️ 설정 관리 로직
+        const settingsOverlay = document.getElementById('settings-overlay');
+        const currentPwCheck = document.getElementById('current-pw-check');
+        const newPwInput = document.getElementById('new-pw-input');
+        const savePwBtn = document.getElementById('save-pw-btn');
+
+        function openSettings() { if(isAuthorized) settingsOverlay.classList.remove('hidden'); }
+        function closeSettings() { 
+            settingsOverlay.classList.add('hidden');
+            currentPwCheck.value = "";
+            newPwInput.value = "";
+        }
+
+        savePwBtn.onclick = () => {
+            if (currentPwCheck.value !== currentMasterPassword) {
+                currentPwCheck.value = "";
+                currentPwCheck.placeholder = "비번 틀림!";
+                return;
+            }
+            if (newPwInput.value.length < 4) {
+                newPwInput.placeholder = "4자리 필수!";
+                return;
+            }
+            currentMasterPassword = newPwInput.value;
+            alert("암호가 성공적으로 변경되었습니다.");
+            closeSettings();
+        };
 
         // STT 로직
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -207,7 +263,7 @@
 
                 let msg = data.includes('|') ? data.split('|').pop().trim() : data;
                 if (msg && msg !== lastMsg && msg !== "-" && !/^(D:|A:|CMD:|Event:|OK:)/.test(msg)) {
-                    if (lastMsg === "" && (msg.includes("v11.8.0") || msg.includes("환영합니다"))) { lastMsg = msg; return; }
+                    if (lastMsg === "" && (msg.includes("v11.9.0") || msg.includes("환영합니다"))) { lastMsg = msg; return; }
                     addChat("깡통로봇", msg); lastMsg = msg;
                     if(audioEnabled) speak(msg);
                 }
