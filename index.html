@@ -23,21 +23,19 @@
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner"><i class="fas fa-robot"></i></div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v10.0.0</span></h1>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v10.1.0</span></h1>
                 <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">AI FLEET COMMAND CENTER</p>
             </div>
         </div>
-        <div class="flex flex-col items-end">
-            <div class="flex items-center space-x-1 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
-                <div id="status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span class="text-[10px] text-emerald-600 font-bold">Online</span>
-            </div>
+        <div class="flex items-center space-x-1 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
+            <div id="status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span class="text-[10px] text-emerald-600 font-bold">Online</span>
         </div>
     </header>
 
     <section class="relative w-full bg-slate-900 aspect-video shrink-0 shadow-md border-b-2 border-slate-800 flex flex-col justify-center items-center overflow-hidden">
         <div class="absolute top-2 left-2 z-10">
-            <select id="camera-selector" class="bg-black/60 text-white text-xs font-bold py-1 px-2 rounded-md border border-slate-600 focus:outline-none">
+            <select id="camera-selector" class="bg-black/70 text-white text-xs font-bold py-1 px-2 rounded-md border border-slate-600 focus:outline-none">
                 <option value="offline">📺 카메라 선택 안함</option>
                 <option value="kobuki">🐢 고부기 (거실)</option>
                 <option value="walle">🤖 Wall-E (안방)</option>
@@ -51,13 +49,12 @@
         <div class="text-left flex items-start space-x-2">
             <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm mt-1"><i class="fas fa-robot"></i></div>
             <div class="p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">
-                반갑습니다 사령관님! 🦾<br>마이크 버튼을 눌러보세요. <b>v10.0.0</b>에서 모든 권한 설정을 최적화했습니다.
+                사령관님! 멈춤 현상을 해결한 <b>v10.1.0</b>입니다. <br>마이크를 눌렀을 때 반응이 없으면 2초 뒤 자동 초기화됩니다. 다시 한번 명령을 내려주세요! 🦾
             </div>
         </div>
     </main>
 
     <footer class="p-4 bg-white border-t border-slate-200 shadow-lg shrink-0 pb-safe">
-        <!-- 💡 상태 메시지 레이어 (디버깅용) -->
         <div id="debug-status" class="text-[10px] text-center mb-2 font-bold text-slate-400">마이크를 터치하여 대화 시작</div>
         
         <div class="flex items-center space-x-3">
@@ -76,13 +73,13 @@
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwDaArFRICsT8FYy5SqlgH63fNtM7GFOu-GZ7R1YE20FIMsfREotYZsIqPgG4EpUMzE/exec";
         let lastMsg = "";
         let audioUnlocked = false;
+        let watchdogTimer = null;
 
         const chatHistory = document.getElementById('chat-history');
         const micBtn = document.getElementById('mic-btn');
         const textInput = document.getElementById('text-input');
         const debugStatus = document.getElementById('debug-status');
 
-        // 🎙️ 음성 인식 설정 (전역 변수로 미리 확보)
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition = null;
 
@@ -92,33 +89,47 @@
             recognition.continuous = false;
             recognition.interimResults = false;
 
-            // 💡 [핵심] 마이크 버튼 이벤트 핸들러 강화
+            // 💡 엔진이 실제로 작동을 시작했을 때 실행
+            recognition.onstart = () => {
+                clearTimeout(watchdogTimer); // 멈춤 감시 타이머 해제
+                debugStatus.innerText = "마이크 가동 성공! 말씀하세요";
+                debugStatus.className = "text-[10px] text-center mb-2 font-bold text-red-500";
+                micBtn.classList.add('listening');
+            };
+
             micBtn.addEventListener('click', function() {
-                debugStatus.innerText = "진단 중...";
-                
-                // 1. 오디오 잠금 해제 시도
-                if (!audioUnlocked) {
-                    const silent = new SpeechSynthesisUtterance("");
-                    window.speechSynthesis.speak(silent);
-                    audioUnlocked = true;
-                    debugStatus.innerText = "오디오 엔진 활성화됨";
+                // 이미 인식 중이라면 중단
+                if (micBtn.classList.contains('listening')) {
+                    recognition.stop();
+                    return;
                 }
 
-                // 2. 마이크 엔진 가동
-                try {
-                    recognition.start();
-                    debugStatus.innerText = "마이크 가동 성공! 말씀하세요";
-                    debugStatus.className = "text-[10px] text-center mb-2 font-bold text-red-500";
-                    micBtn.classList.add('listening');
-                    if (navigator.vibrate) navigator.vibrate(50);
-                } catch (err) {
-                    console.error(err);
-                    debugStatus.innerText = "오류: " + err.message;
-                    // 이미 가동 중이라면 중지
-                    if(err.message.includes('already started')) {
-                        recognition.stop();
+                debugStatus.innerText = "진단 중... (응답 대기)";
+                
+                // 1. 오디오 잠금 해제 (TTS용)
+                if (!audioUnlocked) {
+                    window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+                    audioUnlocked = true;
+                }
+
+                // 2. 멈춤 방지 워치독 가동 (2초 내에 onstart가 안 뜨면 강제 리셋)
+                clearTimeout(watchdogTimer);
+                watchdogTimer = setTimeout(() => {
+                    if (!micBtn.classList.contains('listening')) {
+                        debugStatus.innerText = "엔진 응답 없음. 다시 시도해 주세요.";
+                        debugStatus.className = "text-[10px] text-center mb-2 font-bold text-amber-500";
+                        try { recognition.stop(); } catch(e) {}
                         resetMic();
                     }
+                }, 2000);
+
+                // 3. 마이크 엔진 가동 시도
+                try {
+                    recognition.start();
+                    if (navigator.vibrate) navigator.vibrate(50);
+                } catch (err) {
+                    debugStatus.innerText = "이미 실행 중이거나 오류 발생";
+                    resetMic();
                 }
             });
 
@@ -126,11 +137,10 @@
                 const transcript = event.results[0][0].transcript;
                 addChat("나", transcript);
                 sendToBrain(transcript);
-                debugStatus.innerText = "데이터 전송 중...";
+                debugStatus.innerText = "데이터 전송 완료";
             };
 
             recognition.onerror = (event) => {
-                console.error("SpeechRecognition Error:", event.error);
                 debugStatus.innerText = "에러: " + event.error;
                 resetMic();
             };
@@ -138,8 +148,9 @@
             recognition.onend = () => resetMic();
 
             function resetMic() {
+                clearTimeout(watchdogTimer);
                 micBtn.classList.remove('listening');
-                if(!debugStatus.innerText.includes('에러')) {
+                if(!debugStatus.innerText.includes('에러') && !debugStatus.innerText.includes('응답')) {
                    debugStatus.innerText = "마이크를 터치하여 대화 시작";
                 }
                 debugStatus.className = "text-[10px] text-center mb-2 font-bold text-slate-400";
@@ -158,13 +169,10 @@
                 const response = await fetch(`${GAS_URL}?action=read`);
                 const data = await response.text();
                 const [state, msg] = data.split('|');
-
                 const isMachineData = /^[DA]:|^CMD:|^Event:/.test(msg);
-
                 if (msg && msg !== lastMsg && msg !== "-" && msg !== "" && !isMachineData) {
                     addChat("깡통로봇", msg);
                     lastMsg = msg;
-                    // 🔊 오디오 잠금이 풀린 경우에만 출력
                     if (audioUnlocked) speak(msg);
                 }
             } catch (e) {}
@@ -177,7 +185,6 @@
             utter.lang = 'ko-KR';
             utter.rate = 1.05; utter.pitch = 1.1;
             window.speechSynthesis.speak(utter);
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
         }
 
         function addChat(sender, text) {
