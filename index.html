@@ -14,16 +14,18 @@
         .listening { animation: pulse 1.2s infinite; background-color: #ef4444 !important; transform: scale(1.1); box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); color: white !important; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        /* 터치 반응성 강화 */
+        button:active { transform: scale(0.95); }
     </style>
 </head>
 <body class="flex flex-col h-full">
 
     <!-- 1. 헤더 영역 -->
-    <header class="px-4 py-3 border-b border-sky-200 bg-white flex justify-between items-center shadow-sm z-20 shrink-0">
+    <header class="px-4 py-3 border-b border-sky-200 bg-white flex justify-between items-center shadow-sm z-50 shrink-0">
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner"><i class="fas fa-robot"></i></div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v9.5.1</span></h1>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v9.6.0</span></h1>
                 <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">REMOTE COMMAND CENTER</p>
             </div>
         </div>
@@ -33,9 +35,9 @@
         </div>
     </header>
 
-    <!-- 2. 실시간 카메라 영상 영역 (유지) -->
-    <section class="relative w-full bg-slate-900 aspect-video shrink-0 shadow-md border-b-2 border-slate-800 flex flex-col justify-center items-center overflow-hidden">
-        <div class="absolute top-2 left-2 z-10">
+    <!-- 2. 실시간 카메라 영상 영역 -->
+    <section class="relative w-full bg-slate-900 aspect-video shrink-0 shadow-md border-b-2 border-slate-800 flex flex-col justify-center items-center overflow-hidden z-10">
+        <div class="absolute top-2 left-2 z-20">
             <select id="camera-selector" class="bg-black/60 text-white text-[11px] font-bold py-1 px-2 rounded-md border border-slate-600 focus:outline-none">
                 <option value="offline">📺 카메라 선택</option>
                 <option value="kobuki">🐢 꼬부기 (RGB)</option>
@@ -51,53 +53,73 @@
         <div class="text-left flex items-start space-x-2">
             <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm mt-1"><i class="fas fa-robot"></i></div>
             <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%]">
-                사령관님, 지휘소 v9.5.1 연결 완료! 🦾<br>아래 마이크를 눌러 말씀해 주세요.
+                사령관님, 지휘소 v9.6.0 연결되었습니다! 🦾<br>아래 마이크를 눌러 말씀해 주세요.
             </div>
         </div>
     </main>
 
     <!-- 4. 하단 입력부 -->
-    <footer class="p-3 bg-white border-t border-slate-200 shadow-lg shrink-0 pb-safe">
+    <footer class="p-3 bg-white border-t border-slate-200 shadow-lg shrink-0 pb-safe z-50">
+        <div id="voice-status" class="text-[10px] text-center mb-2 font-bold text-slate-400">마이크를 터치해 명령을 시작하세요</div>
         <div class="flex items-center space-x-2">
-            <!-- 🎙️ 음성 인식 마이크 버튼 (긴급 복구 로직 적용) -->
-            <button id="mic-btn" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg active:scale-95 transition-all">
+            <!-- 🎙️ 마이크 버튼 (Z-index와 터치 면적 강화) -->
+            <button id="mic-btn" style="z-index: 100;" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg active:scale-90 transition-all">
                 <i class="fas fa-microphone"></i>
             </button>
             
             <div class="flex-1 relative">
-                <input type="text" id="text-input" placeholder="음성으로 말하거나 입력..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 text-slate-700">
-                <button id="send-btn" class="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-sky-500 active:scale-90"><i class="fas fa-paper-plane text-xl"></i></button>
+                <input type="text" id="text-input" placeholder="직접 명령 입력..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 text-slate-700">
+                <button id="send-btn" class="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-sky-500 active:scale-90"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
     </footer>
 
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwDaArFRICsT8FYy5SqlgH63fNtM7GFOu-GZ7R1YE20FIMsfREotYZsIqPgG4EpUMzE/exec";
+        const cameraStreams = { "offline": "", "kobuki": "http://192.168.1.225:8080/stream?topic=/camera/image_raw", "depth": "http://192.168.1.225:8080/stream?topic=/camera/depth/image_raw" };
+
         let lastMsg = "";
-        
         const chatHistory = document.getElementById('chat-history');
         const micBtn = document.getElementById('mic-btn');
+        const voiceStatus = document.getElementById('voice-status');
         const textInput = document.getElementById('text-input');
+        const camFeed = document.getElementById('camera-feed');
+        const offlineIcon = document.getElementById('offline-icon');
 
-        // 🎙️ 음성 인식 (STT) - 안정성 강화 버전
+        // 📷 카메라 선택
+        document.getElementById('camera-selector').addEventListener('change', (e) => {
+            const streamUrl = cameraStreams[e.target.value];
+            if (e.target.value === "offline" || !streamUrl) {
+                camFeed.classList.add('hidden'); offlineIcon.classList.remove('hidden'); camFeed.src = "";
+            } else {
+                camFeed.src = streamUrl; camFeed.classList.remove('hidden'); offlineIcon.classList.add('hidden');
+            }
+        });
+
+        // 🎙️ 음성 인식 (STT) - 기동성 극대화 버전
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+
         if (SpeechRecognition) {
-            const recognition = new SpeechRecognition();
+            recognition = new SpeechRecognition();
             recognition.lang = 'ko-KR';
             recognition.continuous = false;
+            recognition.interimResults = false;
 
             micBtn.onclick = () => {
-                // 브라우저 오디오 권한 강제 획득
-                window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+                // 음성 합성 엔진 깨우기 (첫 터치 필수)
+                const silent = new SpeechSynthesisUtterance("");
+                window.speechSynthesis.speak(silent);
                 
                 try {
                     recognition.start();
-                    // [핵심] 성공/실패 여부와 상관없이 시각적 피드백 먼저 주기
                     micBtn.classList.add('listening');
-                    textInput.placeholder = "듣고 있습니다...";
+                    voiceStatus.innerText = "경청 중... 말씀을 끝내면 자동으로 전송됩니다";
+                    voiceStatus.className = "text-[10px] text-center mb-2 font-bold text-red-500";
                     if (navigator.vibrate) navigator.vibrate(50);
                 } catch(e) {
                     console.log("Recognition start error:", e);
+                    resetMic();
                 }
             };
 
@@ -105,38 +127,47 @@
                 const transcript = event.results[0][0].transcript;
                 addChat("나", transcript);
                 sendToBrain(transcript);
-                resetMic();
+                voiceStatus.innerText = "분석 중... 잠시만 기다려주세요";
+                voiceStatus.className = "text-[10px] text-center mb-2 font-bold text-sky-500";
             };
 
             recognition.onerror = (e) => {
                 console.error("STT Error:", e.error);
+                if(e.error === 'not-allowed') voiceStatus.innerText = "마이크 권한이 거부되었습니다!";
+                else voiceStatus.innerText = "다시 한번 말씀해 주세요";
                 resetMic();
             };
+            
             recognition.onend = () => resetMic();
 
             function resetMic() {
                 micBtn.classList.remove('listening');
-                textInput.placeholder = "음성으로 말하거나 입력...";
+                voiceStatus.innerText = "마이크를 터치해 명령을 시작하세요";
+                voiceStatus.className = "text-[10px] text-center mb-2 font-bold text-slate-400";
             }
+        } else {
+            micBtn.style.opacity = "0.5";
+            voiceStatus.innerText = "음성 인식이 지원되지 않는 브라우저입니다";
         }
 
         async function sendToBrain(query) {
             try { await fetch(`${GAS_URL}?query=${encodeURIComponent(query)}`); } catch (e) {}
         }
 
+        function quickCmd(cmd) { addChat("나", cmd); sendToBrain(cmd); }
+
+        // 🔄 로봇 답변 감시 및 스마트폰 TTS
         async function checkResponse() {
             try {
                 const response = await fetch(`${GAS_URL}?action=read`);
                 const data = await response.text();
                 const [state, msg] = data.split('|');
-
-                // 🤖 기계어 필터링 (D:0.0, A:0.0, CMD:, Event: 제외)
                 const isMachineData = /^[DA]:|^CMD:|^Event:/.test(msg);
 
                 if (msg && msg !== lastMsg && msg !== "-" && msg !== "" && !isMachineData) {
                     addChat("깡통로봇", msg);
                     lastMsg = msg;
-                    speak(msg); // 스마트폰 스피커 발성
+                    speak(msg);
                 }
             } catch (e) {}
         }
