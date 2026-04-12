@@ -61,7 +61,7 @@
                 <i class="fas fa-robot"></i>
             </div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 tracking-wide leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v9.8.0</span></h1>
+                <h1 class="title-font text-2xl text-sky-600 tracking-wide leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v9.9.0</span></h1>
                 <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">AI FLEET COMMAND CENTER</p>
             </div>
         </div>
@@ -108,7 +108,7 @@
                 <i class="fas fa-robot"></i>
             </div>
             <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">
-                사령관님 환영합니다! 🦾<br>불필요한 음성 출력 기능을 제거한 <b>안정화 버전 v9.8.0</b>입니다. 이제 마이크 버튼이 정상 작동할 것입니다.
+                사령관님 환영합니다! 🦾<br><b>음성 피드백 v9.9.0</b>이 적용되었습니다. 마이크 버튼을 한 번만 눌러주시면 이후부터 로봇의 목소리가 들립니다.
             </div>
         </div>
     </main>
@@ -170,8 +170,10 @@
             }
         });
 
-        // 🎙️ 음성 인식 (STT) 및 챗봇 로직 (안정성 최적화)
+        // 🎙️ 음성 인식 (STT) 및 챗봇 로직
         let lastMsg = "";
+        let audioUnlocked = false; // 🔊 오디오 잠금 해제 상태 확인
+        
         const chatHistory = document.getElementById('chat-history');
         const micBtn = document.getElementById('mic-btn');
         const textInput = document.getElementById('text-input');
@@ -184,13 +186,21 @@
             recognition.interimResults = false;
 
             micBtn.onclick = () => {
+                // 💡 [핵심] 첫 터치 시 브라우저 오디오 권한 강제 획득
+                if (!audioUnlocked) {
+                    const silent = new SpeechSynthesisUtterance("");
+                    window.speechSynthesis.speak(silent);
+                    audioUnlocked = true;
+                    console.log("Audio Engine Unlocked.");
+                }
+                
                 try {
                     recognition.start();
                     micBtn.classList.add('listening');
                     textInput.placeholder = "듣고 있습니다. 말씀해 주세요...";
                     if (navigator.vibrate) navigator.vibrate(50);
                 } catch (e) {
-                    console.log("이미 인식 중이거나 권한이 필요합니다.");
+                    console.log("이미 인식 중입니다.");
                 }
             };
 
@@ -208,9 +218,6 @@
                 micBtn.classList.remove('listening');
                 textInput.placeholder = "음성으로 말하거나 입력하세요...";
             }
-        } else {
-            micBtn.style.opacity = "0.5";
-            micBtn.onclick = () => alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
         }
 
         async function sendToBrain(query) {
@@ -222,6 +229,11 @@
         }
 
         function quickCmd(cmd) {
+            // 버튼 터치 시에도 오디오 잠금 해제 시도
+            if (!audioUnlocked) {
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+                audioUnlocked = true;
+            }
             addChat("나", cmd);
             sendToBrain(cmd);
         }
@@ -239,29 +251,39 @@
                 if (msg && msg !== lastMsg && msg !== "-" && msg !== "" && !isMachineData) {
                     addChat("깡통로봇", msg);
                     lastMsg = msg;
-                    // [기능 제거] speak(msg); - 스마트폰 발성 기능을 삭제하여 충돌 방지
+                    // 🔊 오디오가 잠금 해제된 상태라면 목소리 출력
+                    if (audioUnlocked) {
+                        speak(msg);
+                    }
                 }
             } catch (e) {}
+        }
+
+        // 🔊 스마트폰 스피커 발성 함수 (v9.9.0 복구)
+        function speak(text) {
+            // 로봇 특유의 추임새나 따옴표 제거
+            const cleanText = text.replace(/[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ.,!?~\'-]/g, '').replace(/치익-|삐빅/g, "").trim();
+            if(!cleanText) return;
+
+            const utter = new SpeechSynthesisUtterance(cleanText);
+            utter.lang = 'ko-KR';
+            utter.rate = 1.05; // 약간 빠른 지적인 말투
+            utter.pitch = 1.1; // 약간 높은 톤의 기계 느낌
+            
+            window.speechSynthesis.speak(utter);
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
         }
 
         function addChat(sender, text) {
             const div = document.createElement('div');
             if (sender === "나") {
                 div.className = "text-right flex justify-end mb-2";
-                div.innerHTML = `
-                    <div class="inline-block p-3 rounded-2xl rounded-tr-sm text-sm bg-sky-500 text-white shadow-md max-w-[85%] leading-relaxed text-left">
-                        ${text}
-                    </div>
-                `;
+                div.innerHTML = `<div class="inline-block p-3 rounded-2xl rounded-tr-sm text-sm bg-sky-500 text-white shadow-md max-w-[85%] leading-relaxed text-left">${text}</div>`;
             } else {
                 div.className = "text-left flex items-start space-x-2 mb-2 mt-4";
                 div.innerHTML = `
-                    <div class="w-8 h-8 shrink-0 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">
-                        ${text}
-                    </div>
+                    <div class="w-8 h-8 shrink-0 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1"><i class="fas fa-robot"></i></div>
+                    <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">${text}</div>
                 `;
             }
             chatHistory.appendChild(div);
@@ -270,6 +292,10 @@
 
         document.getElementById('send-btn').onclick = () => {
             if (textInput.value.trim() !== "") {
+                if (!audioUnlocked) {
+                    window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+                    audioUnlocked = true;
+                }
                 addChat("나", textInput.value);
                 sendToBrain(textInput.value);
                 textInput.value = "";
@@ -278,7 +304,6 @@
 
         textInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('send-btn').click(); });
 
-        // 2.5초 간격으로 응답 감시
         setInterval(checkResponse, 2500);
     </script>
 </body>
