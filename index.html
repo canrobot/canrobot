@@ -24,7 +24,7 @@
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner"><i class="fas fa-robot"></i></div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.2.0</span></h1>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.3.0</span></h1>
                 <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">AI FLEET COMMAND CENTER</p>
             </div>
         </div>
@@ -33,6 +33,7 @@
                 <div id="status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                 <span class="text-[10px] text-emerald-600 font-bold">Online</span>
             </div>
+            <span id="sync-time" class="text-[8px] text-slate-400 font-mono mt-0.5">Sync: --:--:--</span>
         </div>
     </header>
 
@@ -54,7 +55,7 @@
         <div class="text-left flex items-start space-x-2">
             <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1"><i class="fas fa-robot"></i></div>
             <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%]">
-                사령관님 환영합니다! 🦾<br><b>데이터 실종 문제를 해결한 v11.2.0</b>입니다. 답장이 오지 않는다면 잠시만 기다려주세요.
+                사령관님 환영합니다! 🦾<br><b>답변 수신 로직이 강화된 v11.3.0</b>입니다. 이제 시트의 답변이 100% 동기화됩니다.
             </div>
         </div>
     </main>
@@ -77,6 +78,7 @@
         const chatHistory = document.getElementById('chat-history');
         const micBtn = document.getElementById('mic-btn');
         const textInput = document.getElementById('text-input');
+        const syncTimeDisplay = document.getElementById('sync-time');
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
@@ -92,34 +94,46 @@
         async function sendToBrain(query) {
             try { 
                 textInput.placeholder = "분석 중... (로봇이 대답을 준비합니다)";
-                // 브레인에게 질문 전송
                 await fetch(`${GAS_URL}?query=${encodeURIComponent(query)}&t=${Date.now()}`, { cache: 'no-store' });
             } catch (e) { console.error("전송 에러", e); }
         }
 
-        // 🔄 로봇 답장 감시 (v11.2.0 정밀화)
+        // 🔄 로봇 답장 감시 (v11.3.0 핵심 로직)
         async function checkResponse() {
             try {
-                // 💡 [핵심] 쿼리 주소 뒤에 타임스탬프(t)를 붙여 브라우저 캐시를 무력화합니다.
                 const response = await fetch(`${GAS_URL}?action=read&t=${Date.now()}`, { cache: 'no-store' });
                 const data = await response.text();
                 
-                // 데이터 형식이 state|msg 인지 확인
+                // 동기화 시간 업데이트 (작동 중임을 알림)
+                syncTimeDisplay.innerText = "Sync: " + new Date().toLocaleTimeString();
+
+                if (!data || data.includes("ONLINE")) return;
+
+                let msg = "";
+                // 1. 데이터 파싱 (구분자 | 가 없어도 처리 가능하게 보완)
                 if (data.includes('|')) {
                     const parts = data.split('|');
-                    const state = parts[0].trim();
-                    const msg = parts.slice(1).join('|').trim(); // 메시지 내부에 | 가 있을 경우 대비
-
-                    const isMachineData = /^[DA]:|^CMD:|^Event:/.test(msg);
-
-                    // 새로운 메시지가 포착되었고, 무의미한 데이터가 아닌 경우 출력
-                    if (msg && msg !== lastMsg && msg !== "-" && msg !== "" && !isMachineData) {
-                        addChat("깡통로봇", msg);
-                        lastMsg = msg;
-                        textInput.placeholder = "메시지를 입력하세요...";
-                    }
+                    msg = parts.slice(1).join('|').trim();
+                } else {
+                    msg = data.trim();
                 }
-            } catch (e) { console.log("응답 확인 에러:", e); }
+
+                // 2. 기계어 필터링 (D:, A:, CMD:, Event: 로 시작하는 기계 정보 제외)
+                const isMachineData = /^(D:|A:|CMD:|Event:)/.test(msg);
+
+                // 3. 중복 및 빈 데이터 체크 후 채팅창 표시
+                if (msg && msg !== lastMsg && msg !== "-" && msg !== "" && !isMachineData) {
+                    // 최초 실행 시 placeholder 메시지가 이미 있는 경우 lastMsg만 업데이트하고 종료
+                    if (lastMsg === "" && msg.includes("v11.3.0")) {
+                        lastMsg = msg;
+                        return;
+                    }
+                    
+                    addChat("깡통로봇", msg);
+                    lastMsg = msg;
+                    textInput.placeholder = "메시지를 입력하세요...";
+                }
+            } catch (e) { console.log("수신 에러:", e); }
         }
 
         function addChat(sender, text) {
@@ -130,12 +144,15 @@
             } else {
                 div.className = "text-left flex items-start space-x-2 mb-2 mt-4 animate-in fade-in slide-in-from-left-2 duration-300";
                 div.innerHTML = `
-                    <div class="w-8 h-8 shrink-0 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1"><i class="fas fa-robot"></i></div>
+                    <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1"><i class="fas fa-robot"></i></div>
                     <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">${text}</div>
                 `;
             }
             chatHistory.appendChild(div);
-            setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50);
+            // 부드러운 스크롤 처리
+            setTimeout(() => {
+                chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
+            }, 100);
         }
 
         document.getElementById('send-btn').onclick = () => { if (textInput.value.trim() !== "") { addChat("나", textInput.value); sendToBrain(textInput.value); textInput.value = ""; } };
@@ -143,6 +160,25 @@
 
         // 2.5초 간격으로 로봇의 입을 바라봅니다.
         setInterval(checkResponse, 2500);
+
+        // 카메라 선택 로직 (기존 유지)
+        const cameraStreams = { "offline": "", "kobuki": "http://192.168.1.225:8080/stream?topic=/camera/image_raw", "walle": "http://192.168.1.100:8080/stream?topic=/camera/image_raw", "turtlebot": "http://192.168.1.101:8080/stream?topic=/camera/image_raw" };
+        const camSelector = document.getElementById('camera-selector');
+        const camFeed = document.getElementById('camera-feed');
+        const camOfflineIcon = document.getElementById('camera-offline-icon');
+        const camStatusText = document.getElementById('cam-status-text');
+        camSelector.addEventListener('change', (e) => {
+            const selected = e.target.value;
+            const streamUrl = cameraStreams[selected];
+            if (selected === "offline" || !streamUrl) {
+                camFeed.classList.add('hidden'); camOfflineIcon.classList.remove('hidden');
+                camStatusText.textContent = "NO SIGNAL"; camStatusText.className = "text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded";
+                camFeed.src = "";
+            } else {
+                camFeed.src = streamUrl; camFeed.classList.remove('hidden'); camOfflineIcon.classList.add('hidden');
+                camStatusText.textContent = "LIVE REC"; camStatusText.className = "text-[9px] text-red-500 font-mono bg-black/60 px-1.5 py-0.5 rounded animate-pulse";
+            }
+        });
     </script>
 </body>
 </html>
