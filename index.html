@@ -61,7 +61,7 @@
                 <i class="fas fa-robot"></i>
             </div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 tracking-wide leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v9.7.0</span></h1>
+                <h1 class="title-font text-2xl text-sky-600 tracking-wide leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v9.8.0</span></h1>
                 <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">AI FLEET COMMAND CENTER</p>
             </div>
         </div>
@@ -103,13 +103,12 @@
 
     <!-- 3. 채팅 (명령/응답) 로그 영역 -->
     <main id="chat-history" class="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50 no-scrollbar">
-        <!-- 환영 인사 -->
         <div class="text-left flex items-start space-x-2">
-            <div class="w-8 h-8 shrink-0 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1">
+            <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1">
                 <i class="fas fa-robot"></i>
             </div>
             <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">
-                사령관님 환영합니다! 🦾<br>아래 <b>마이크 버튼</b>을 누르고 말씀해 주세요. v9.7.0 가동 중입니다.
+                사령관님 환영합니다! 🦾<br>불필요한 음성 출력 기능을 제거한 <b>안정화 버전 v9.8.0</b>입니다. 이제 마이크 버튼이 정상 작동할 것입니다.
             </div>
         </div>
     </main>
@@ -117,15 +116,13 @@
     <!-- 4. 하단 입력 및 음성 컨트롤 영역 -->
     <footer class="p-3 bg-white border-t border-slate-200 shadow-lg shrink-0 pb-safe">
         
-        <!-- 빠른 명령 버튼들 -->
         <div class="flex space-x-2 mb-3 overflow-x-auto no-scrollbar pb-1">
             <button onclick="quickCmd('거실 상황 어때?')" class="px-4 py-2 rounded-full bg-slate-100 text-slate-600 text-xs font-bold border border-slate-200 whitespace-nowrap active:bg-slate-200 transition-colors"><i class="fas fa-eye mr-1"></i>상황 보고</button>
             <button onclick="quickCmd('꼬부기 안방으로 이동해')" class="px-4 py-2 rounded-full bg-sky-50 text-sky-600 text-xs font-bold border border-sky-100 whitespace-nowrap active:bg-sky-200 transition-colors"><i class="fas fa-location-arrow mr-1"></i>꼬부기 이동</button>
         </div>
         
-        <!-- 마이크 및 텍스트 입력창 -->
         <div class="flex items-center space-x-2">
-            <!-- 🎙️ 거대한 음성 인식 마이크 버튼 -->
+            <!-- 🎙️ 음성 인식 마이크 버튼 -->
             <button id="mic-btn" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg active:scale-90 transition-all duration-300">
                 <i class="fas fa-microphone"></i>
             </button>
@@ -173,7 +170,7 @@
             }
         });
 
-        // 🎙️ 음성 인식 (STT) 및 챗봇 로직
+        // 🎙️ 음성 인식 (STT) 및 챗봇 로직 (안정성 최적화)
         let lastMsg = "";
         const chatHistory = document.getElementById('chat-history');
         const micBtn = document.getElementById('mic-btn');
@@ -187,17 +184,13 @@
             recognition.interimResults = false;
 
             micBtn.onclick = () => {
-                // 첫 터치 때 브라우저 오디오 권한 및 엔진 깨우기
-                const silent = new SpeechSynthesisUtterance("");
-                window.speechSynthesis.speak(silent);
-                
                 try {
                     recognition.start();
                     micBtn.classList.add('listening');
                     textInput.placeholder = "듣고 있습니다. 말씀해 주세요...";
                     if (navigator.vibrate) navigator.vibrate(50);
                 } catch (e) {
-                    console.log("이미 인식 중입니다.");
+                    console.log("이미 인식 중이거나 권한이 필요합니다.");
                 }
             };
 
@@ -246,7 +239,7 @@
                 if (msg && msg !== lastMsg && msg !== "-" && msg !== "" && !isMachineData) {
                     addChat("깡통로봇", msg);
                     lastMsg = msg;
-                    speak(msg); // 밖에서도 깡통로봇의 목소리가 들리게 함
+                    // [기능 제거] speak(msg); - 스마트폰 발성 기능을 삭제하여 충돌 방지
                 }
             } catch (e) {}
         }
@@ -273,20 +266,6 @@
             }
             chatHistory.appendChild(div);
             setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50);
-        }
-
-        // 🔊 스마트폰 스피커로 읽어주기 (TTS)
-        function speak(text) {
-            // 이모티콘 및 기계음 기호 제거
-            const cleanText = text.replace(/[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ.,!?~\'-]/g, '').replace(/치익-|삐빅/g, "").trim();
-            if(!cleanText) return;
-
-            const utter = new SpeechSynthesisUtterance(cleanText);
-            utter.lang = 'ko-KR';
-            utter.rate = 1.05; 
-            utter.pitch = 1.1; 
-            window.speechSynthesis.speak(utter);
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
         }
 
         document.getElementById('send-btn').onclick = () => {
