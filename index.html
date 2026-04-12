@@ -24,44 +24,41 @@
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner"><i class="fas fa-robot"></i></div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.4.0</span></h1>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.5.0</span></h1>
                 <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">AI FLEET COMMAND CENTER</p>
             </div>
         </div>
         <div class="flex flex-col items-end">
             <div class="flex items-center space-x-1 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
                 <div id="status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span class="text-[10px] text-emerald-600 font-bold">Online</span>
+                <span class="text-[10px] text-emerald-600 font-bold">LIVE</span>
             </div>
-            <span id="sync-time" class="text-[8px] text-slate-400 font-mono mt-0.5">Sync: --:--:--</span>
+            <span id="sync-time" class="text-[8px] text-slate-400 font-mono mt-0.5">READY</span>
         </div>
     </header>
 
-    <!-- 카메라 영역 -->
     <section class="relative w-full bg-slate-900 aspect-video shrink-0 shadow-md border-b-2 border-slate-800 flex flex-col justify-center items-center camera-offline overflow-hidden">
         <div class="absolute top-2 left-2 z-10">
             <select id="camera-selector" class="bg-black/60 text-white text-xs font-bold py-1 px-2 rounded-md border border-slate-600 backdrop-blur-sm focus:outline-none">
-                <option value="offline">📺 카메라 선택 안함</option>
+                <option value="offline">📺 카메라 선택</option>
                 <option value="kobuki">🐢 고부기 (거실)</option>
                 <option value="walle">🤖 Wall-E (안방)</option>
             </select>
         </div>
-        <div class="absolute top-2 right-2 z-10 flex items-center space-x-1"><span id="cam-status-text" class="text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded">NO SIGNAL</span></div>
+        <div class="absolute top-2 right-2 z-10"><span id="cam-status-text" class="text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded">NO SIGNAL</span></div>
         <img id="camera-feed" src="" class="w-full h-full object-contain hidden">
         <div id="camera-offline-icon" class="text-center text-slate-500 opacity-60"><i class="fas fa-video-slash text-4xl mb-2"></i><p class="text-xs font-bold tracking-wider">CAMERA OFFLINE</p></div>
     </section>
 
-    <!-- 채팅창 -->
     <main id="chat-history" class="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50 no-scrollbar">
         <div class="text-left flex items-start space-x-2">
             <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1"><i class="fas fa-robot"></i></div>
             <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%]">
-                사령관님 환영합니다! 🦾<br><b>수신 가속 v11.4.0</b> 버전이 적용되었습니다. 로봇이 답변을 시트에 쓰는 즉시 확인하겠습니다.
+                사령관님, <b>최종 안정화 버전 v11.5.0</b>입니다.<br>마이크를 한 번 누르시면 음성 엔진이 깨어납니다! 🦾
             </div>
         </div>
     </main>
 
-    <!-- 하단 입력부 -->
     <footer class="p-3 bg-white border-t border-slate-200 shadow-lg shrink-0 pb-safe">
         <div class="flex items-center space-x-2">
             <button id="mic-btn" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg active:scale-90 transition-all duration-300">
@@ -77,72 +74,112 @@
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwDaArFRICsT8FYy5SqlgH63fNtM7GFOu-GZ7R1YE20FIMsfREotYZsIqPgG4EpUMzE/exec";
         let lastMsg = "";
+        let audioEnabled = false;
+        
         const chatHistory = document.getElementById('chat-history');
         const micBtn = document.getElementById('mic-btn');
         const textInput = document.getElementById('text-input');
         const syncTimeDisplay = document.getElementById('sync-time');
 
-        // 음성 인식 (STT) 로직
+        // 🎙️ 음성 인식 (STT) 로직
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
         if (SpeechRecognition) {
-            const recognition = new SpeechRecognition();
+            recognition = new SpeechRecognition();
             recognition.lang = 'ko-KR';
-            micBtn.onclick = () => { try { recognition.start(); micBtn.classList.add('listening'); textInput.placeholder = "듣고 있습니다..."; } catch (e) { recognition.stop(); } };
-            recognition.onresult = (e) => { const text = e.results[0][0].transcript; addChat("나", text); sendToBrain(text); resetMic(); };
+            recognition.continuous = false;
+
+            micBtn.onclick = () => {
+                // 🔊 최초 클릭 시 오디오 엔진 활성화
+                if(!audioEnabled) {
+                    const silent = new SpeechSynthesisUtterance("");
+                    window.speechSynthesis.speak(silent);
+                    audioEnabled = true;
+                }
+                
+                try {
+                    recognition.start();
+                    micBtn.classList.add('listening');
+                    textInput.placeholder = "깡통로봇이 듣고 있어요...";
+                } catch (e) {
+                    recognition.stop();
+                }
+            };
+
+            recognition.onresult = (e) => {
+                const text = e.results[0][0].transcript;
+                addChat("나", text);
+                sendToBrain(text);
+                resetMic();
+            };
             recognition.onerror = () => resetMic();
             recognition.onend = () => resetMic();
             function resetMic() { micBtn.classList.remove('listening'); textInput.placeholder = "메시지를 입력하세요..."; }
         }
 
         async function sendToBrain(query) {
-            try { 
-                textInput.placeholder = "분석 중... (로봇이 대답을 준비합니다)";
-                await fetch(`${GAS_URL}?query=${encodeURIComponent(query)}&t=${Date.now()}`, { mode: 'no-cors' });
+            try {
+                textInput.placeholder = "깡통로봇이 생각 중입니다...";
+                // No-cache 파라미터 추가
+                await fetch(`${GAS_URL}?query=${encodeURIComponent(query)}&cache_bust=${Date.now()}`, { mode: 'no-cors' });
             } catch (e) { console.error("전송 에러", e); }
         }
 
-        // 🔄 로봇 답장 감시 (v11.4.0 파싱 로직 대폭 강화)
+        // 🔄 로봇 답장 감시 (v11.5.0 정밀 수신 엔진)
         async function checkResponse() {
             try {
-                // 캐시 방지용 타임스탬프와 함께 fetch
+                // 캐시를 완전히 무시하기 위한 타임스탬프 전략
                 const response = await fetch(`${GAS_URL}?action=read&t=${Date.now()}`);
-                const data = await response.text();
+                const rawData = await response.text();
+                const data = rawData.trim();
                 
-                // 통신 상태 시각화
-                syncTimeDisplay.innerText = "Sync: " + new Date().toLocaleTimeString();
+                syncTimeDisplay.innerText = "Sync: " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
 
-                if (!data || data.trim() === "" || data.includes("ONLINE")) return;
+                if (!data || data === "" || data.includes("ONLINE")) return;
 
                 let msg = "";
-                // 1. 데이터 파싱 로직 강화
+                // 1. 데이터 파싱: '상태|메시지' 구분자 처리
                 if (data.includes('|')) {
-                    // '상태|메시지' 형식이면 메시지만 추출
                     const parts = data.split('|');
-                    msg = parts.slice(1).join('|').trim();
+                    // 마지막 파트가 실제 메시지일 확률이 높음
+                    msg = parts[parts.length - 1].trim();
                 } else {
-                    // 구분자가 없으면 전체 데이터를 메시지로 간주
-                    msg = data.trim();
+                    msg = data;
                 }
 
-                // 2. 기계어 필터링 정밀화
-                const isMachineData = /^(D:|A:|CMD:|Event:|OK:)/.test(msg);
+                // 2. 기계어 필터링 강화
+                const isMachine = /^(D:|A:|CMD:|Event:|OK:)/.test(msg);
                 
-                // 3. 답변 출력 조건 (메시지가 존재하고, 이전과 다르며, 기계어가 아닐 때)
-                if (msg && msg !== lastMsg && msg !== "-" && !isMachineData) {
-                    // 최초 안내 메시지가 중복 표시되는 것 방지
-                    if (lastMsg === "" && (msg.includes("v11.4.0") || msg.includes("환영합니다"))) {
+                // 3. 답변 출력 (중복 방지 및 유효성 검사)
+                if (msg && msg !== lastMsg && msg !== "-" && !isMachine) {
+                    // 처음 로딩 시 기존 환영 메시지와 겹치지 않게 방어
+                    if (lastMsg === "" && (msg.includes("v11.5.0") || msg.includes("환영합니다"))) {
                         lastMsg = msg;
                         return;
                     }
 
-                    console.log("새 메시지 수신:", msg); // 브라우저 콘솔 디버깅용
                     addChat("깡통로봇", msg);
                     lastMsg = msg;
                     textInput.placeholder = "메시지를 입력하세요...";
+                    
+                    // 🔊 음성 출력 시도 (활성화된 경우에만)
+                    if(audioEnabled) speak(msg);
                 }
-            } catch (e) { 
-                console.warn("데이터 수신 중 일시적 지연 발생:", e);
-            }
+            } catch (e) { console.warn("수신 확인 중..."); }
+        }
+
+        // 🔊 음성 출력 엔진 (TTS)
+        function speak(text) {
+            try {
+                const cleanText = text.replace(/[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ.,!?~\'-]/g, '').replace(/치익-|삐빅/g, "").trim();
+                if(!cleanText) return;
+
+                const utter = new SpeechSynthesisUtterance(cleanText);
+                utter.lang = 'ko-KR';
+                utter.rate = 1.05;
+                utter.pitch = 1.1;
+                window.speechSynthesis.speak(utter);
+            } catch (e) { console.error("TTS 오류:", e); }
         }
 
         function addChat(sender, text) {
@@ -158,16 +195,20 @@
                 `;
             }
             chatHistory.appendChild(div);
-            // 최신 메시지로 강제 스크롤
-            setTimeout(() => {
-                chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
-            }, 100);
+            setTimeout(() => { chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' }); }, 100);
         }
 
-        document.getElementById('send-btn').onclick = () => { if (textInput.value.trim() !== "") { addChat("나", textInput.value); sendToBrain(textInput.value); textInput.value = ""; } };
+        document.getElementById('send-btn').onclick = () => { 
+            if (textInput.value.trim() !== "") { 
+                if(!audioEnabled) { audioEnabled = true; window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); }
+                addChat("나", textInput.value); 
+                sendToBrain(textInput.value); 
+                textInput.value = ""; 
+            } 
+        };
         textInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('send-btn').click(); });
 
-        // 2초마다 깡통로봇의 입을 확인합니다.
+        // 2초마다 시트를 감시합니다.
         setInterval(checkResponse, 2000);
 
         // 카메라 선택 (기존 유지)
