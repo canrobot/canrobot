@@ -22,7 +22,10 @@
     <header class="px-4 py-3 border-b border-sky-200 bg-white flex justify-between items-center shadow-sm shrink-0">
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl"><i class="fas fa-robot"></i></div>
-            <div><h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇</h1><p class="text-[10px] text-slate-400 font-bold mt-1">AI FLEET STABILIZED MODE</p></div>
+            <div>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v9.2.1</span></h1>
+                <p class="text-[10px] text-slate-400 font-bold mt-1">AI FLEET STABILIZED MODE</p>
+            </div>
         </div>
         <div id="connection-status" class="flex items-center space-x-1 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
             <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -70,6 +73,7 @@
         let lastMsg = "";
         let isVoiceMode = false;
         let isSpeaking = false;
+        let isAnalyzing = false;
         
         const chatHistory = document.getElementById('chat-history');
         const micBtn = document.getElementById('mic-btn');
@@ -100,36 +104,47 @@
                 addChat("나", transcript);
                 sendToBrain(transcript);
                 
+                // 💡 [핵심수정] 인식이 완료되는 즉시 듣기를 중단하고 '분석 중'으로 강제 전환
+                isAnalyzing = true;
+                recognition.stop(); 
+                
                 voiceStatus.innerText = "분석 중...";
                 voiceStatus.classList.add('analyzing');
             };
 
             recognition.onerror = (event) => {
-                console.log("Speech recognition error:", event.error);
-                if (isVoiceMode) {
-                    setTimeout(() => { try { recognition.start(); } catch(e) {} }, 500);
+                if (event.error === 'no-speech') {
+                    console.log("No speech detected, continuing...");
+                } else {
+                    console.log("Speech recognition error:", event.error);
+                }
+                
+                // 에러 발생 시 음성 모드가 켜져 있다면 다시 시작 시도
+                if (isVoiceMode && !isSpeaking && !isAnalyzing) {
+                    setTimeout(() => { try { recognition.start(); } catch(e) {} }, 300);
                 }
             };
 
             recognition.onend = () => {
-                // 음성 모드이며 로봇이 말하는 중이 아닐 때만 다시 시작
-                if (isVoiceMode && !isSpeaking) {
+                // 분석 중이거나 로봇이 말하는 중이 아닐 때, 정적 대기 상태라면 다시 시작 (상시 모드 유지)
+                if (isVoiceMode && !isSpeaking && !isAnalyzing) {
                     setTimeout(() => { 
-                        if (isVoiceMode && !isSpeaking) {
+                        if (isVoiceMode && !isSpeaking && !isAnalyzing) {
                             try { recognition.start(); } catch(e) {}
                         }
-                    }, 500);
+                    }, 300);
                 }
             };
         }
 
         function startVoiceMode() {
             isVoiceMode = true;
+            isAnalyzing = false;
             micBtn.classList.add('listening');
             voiceStatus.innerText = "듣고 있습니다... 말씀해 주세요";
             voiceStatus.classList.remove('analyzing');
             
-            // 모바일 오디오 잠금 해제
+            // 모바일 오디오 잠금 해제 (TTS 활성화를 위함)
             const utter = new SpeechSynthesisUtterance("");
             window.speechSynthesis.speak(utter);
             
@@ -138,6 +153,7 @@
 
         function stopVoiceMode() {
             isVoiceMode = false;
+            isAnalyzing = false;
             micBtn.classList.remove('listening');
             voiceStatus.innerText = "마이크가 꺼졌습니다";
             voiceStatus.classList.remove('analyzing');
@@ -158,6 +174,8 @@
                 const isCommand = /^[DA]:|^CMD:|^Event:/.test(msg);
 
                 if (msg && msg !== lastMsg && msg !== "-" && msg !== "" && !isCommand) {
+                    // 💡 답변이 도착하면 분석 상태 종료
+                    isAnalyzing = false; 
                     addChat("깡통로봇", msg);
                     lastMsg = msg;
                     speak(msg);
@@ -179,24 +197,26 @@
         // 🔊 로봇 답변 음성 출력
         function speak(text) {
             isSpeaking = true;
-            if (recognition) try { recognition.stop(); } catch(e) {} // 말하는 동안은 귀를 닫음
+            isAnalyzing = false;
+            if (recognition) try { recognition.stop(); } catch(e) {} 
             
             const cleanText = text.replace(/[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ.,!?~\'-]/g, '').replace(/치익-|삐빅/g, "").trim();
             const utter = new SpeechSynthesisUtterance(cleanText);
             utter.lang = 'ko-KR';
-            utter.rate = 1.1;
+            utter.rate = 1.05;
             utter.pitch = 1.1;
 
             utter.onend = () => {
                 isSpeaking = false;
-                if (isVoiceMode) {
+                // 로봇의 말이 끝나면 다시 마이크를 열어 대화를 이어감
+                if (isVoiceMode && !isAnalyzing) {
                     voiceStatus.innerText = "듣고 있습니다... 말씀해 주세요";
                     voiceStatus.classList.remove('analyzing');
                     setTimeout(() => { 
-                        if (isVoiceMode) {
+                        if (isVoiceMode && !isSpeaking && !isAnalyzing) {
                             try { recognition.start(); } catch(e) {}
                         }
-                    }, 500);
+                    }, 300);
                 }
             };
 
@@ -209,6 +229,7 @@
                 addChat("나", textInput.value);
                 sendToBrain(textInput.value);
                 textInput.value = "";
+                isAnalyzing = true;
                 voiceStatus.innerText = "분석 중...";
                 voiceStatus.classList.add('analyzing');
             }
