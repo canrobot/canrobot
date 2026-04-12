@@ -61,7 +61,7 @@
                 <i class="fas fa-robot"></i>
             </div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.0.0</span></h1>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v11.1.0</span></h1>
                 <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">AI FLEET COMMAND CENTER</p>
             </div>
         </div>
@@ -100,11 +100,11 @@
     <!-- 3. 채팅 (명령/응답) 로그 영역 -->
     <main id="chat-history" class="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50 no-scrollbar">
         <div class="text-left flex items-start space-x-2">
-            <div class="w-8 h-8 shrink-0 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1">
+            <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1">
                 <i class="fas fa-robot"></i>
             </div>
             <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">
-                사령관님 환영합니다! 🦾<br>가장 안정적인 <b>안정화 버전 v11.0.0</b>입니다. 아래 마이크를 눌러 말씀해 주세요.
+                사령관님 환영합니다! 🦾<br><b>채팅 가시성이 강화된 v11.1.0</b>입니다. 로봇의 답변이 도착하면 여기에 즉시 나타납니다.
             </div>
         </div>
     </main>
@@ -180,7 +180,6 @@
                     textInput.placeholder = "듣고 있습니다. 말씀해 주세요...";
                     if (navigator.vibrate) navigator.vibrate(50);
                 } catch (e) {
-                    // 이미 인식 중이면 한 번 멈추고 다시 시도 가능하게 함
                     recognition.stop();
                     console.log("Recognition reset");
                 }
@@ -213,7 +212,7 @@
             }
         }
 
-        // 🔄 브레인의 응답 읽기 및 기계어 필터링
+        // 🔄 브레인의 응답 읽기 및 채팅창 출력 (v11.1.0 핵심 로직)
         async function checkResponse() {
             try {
                 const response = await fetch(`${GAS_URL}?action=read`);
@@ -223,10 +222,10 @@
                 // 🤖 기계어 필터링 (D:0.0, A:0.0, CMD:, Event: 제외)
                 const isMachineData = /^[DA]:|^CMD:|^Event:/.test(msg);
 
+                // 새로운 메시지가 포착되면 즉시 채팅창에 추가
                 if (msg && msg !== lastMsg && msg !== "-" && msg !== "" && !isMachineData) {
                     addChat("깡통로봇", msg);
                     lastMsg = msg;
-                    // speak(msg); 기능을 제거하여 마이크와의 충돌을 원천 차단했습니다.
                 }
             } catch (e) {}
         }
@@ -241,7 +240,7 @@
                     </div>
                 `;
             } else {
-                div.className = "text-left flex items-start space-x-2 mb-2 mt-4";
+                div.className = "text-left flex items-start space-x-2 mb-2 mt-4 animate-in fade-in slide-in-from-left-2 duration-300";
                 div.innerHTML = `
                     <div class="w-8 h-8 shrink-0 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1">
                         <i class="fas fa-robot"></i>
