@@ -23,7 +23,7 @@
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner"><i class="fas fa-robot"></i></div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v10.1.0</span></h1>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v10.1.1</span></h1>
                 <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">AI FLEET COMMAND CENTER</p>
             </div>
         </div>
@@ -49,7 +49,7 @@
         <div class="text-left flex items-start space-x-2">
             <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm mt-1"><i class="fas fa-robot"></i></div>
             <div class="p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%] leading-relaxed">
-                사령관님! 멈춤 현상을 해결한 <b>v10.1.0</b>입니다. <br>마이크를 눌렀을 때 반응이 없으면 2초 뒤 자동 초기화됩니다. 다시 한번 명령을 내려주세요! 🦾
+                사령관님! 강제 초기화 로직을 보강한 <b>v10.1.1</b>입니다. <br>진단 중 상태에서 2초 이상 반응이 없으면 엔진을 강제로 재시작합니다. 다시 한번 눌러주세요! 🦾
             </div>
         </div>
     </main>
@@ -63,7 +63,7 @@
             </button>
             
             <div class="flex-1 relative">
-                <input type="text" id="text-input" placeholder="음성 또는 텍스트 입력..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl pl-4 pr-12 py-4 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all text-slate-700">
+                <input type="text" id="text-input" placeholder="음성 또는 텍스트 입력..." class="w-full bg-slate-100 border border-slate-300 rounded-2xl pl-4 pr-12 py-4 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all text-slate-700">
                 <button id="send-btn" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-sky-500 active:scale-90"><i class="fas fa-paper-plane text-xl"></i></button>
             </div>
         </div>
@@ -89,47 +89,46 @@
             recognition.continuous = false;
             recognition.interimResults = false;
 
-            // 💡 엔진이 실제로 작동을 시작했을 때 실행
             recognition.onstart = () => {
-                clearTimeout(watchdogTimer); // 멈춤 감시 타이머 해제
+                clearTimeout(watchdogTimer); // 💡 작동 시작 시 타이머 해제
                 debugStatus.innerText = "마이크 가동 성공! 말씀하세요";
                 debugStatus.className = "text-[10px] text-center mb-2 font-bold text-red-500";
                 micBtn.classList.add('listening');
             };
 
             micBtn.addEventListener('click', function() {
-                // 이미 인식 중이라면 중단
                 if (micBtn.classList.contains('listening')) {
                     recognition.stop();
                     return;
                 }
 
                 debugStatus.innerText = "진단 중... (응답 대기)";
+                debugStatus.className = "text-[10px] text-center mb-2 font-bold text-slate-400";
                 
-                // 1. 오디오 잠금 해제 (TTS용)
                 if (!audioUnlocked) {
                     window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
                     audioUnlocked = true;
                 }
 
-                // 2. 멈춤 방지 워치독 가동 (2초 내에 onstart가 안 뜨면 강제 리셋)
+                // 💡 [핵심] 2초 워치독 설정 - 모든 상태를 강제 리셋
                 clearTimeout(watchdogTimer);
                 watchdogTimer = setTimeout(() => {
                     if (!micBtn.classList.contains('listening')) {
-                        debugStatus.innerText = "엔진 응답 없음. 다시 시도해 주세요.";
+                        debugStatus.innerText = "엔진 응답 없음 (강제 초기화 완료)";
                         debugStatus.className = "text-[10px] text-center mb-2 font-bold text-amber-500";
-                        try { recognition.stop(); } catch(e) {}
-                        resetMic();
+                        try { 
+                            recognition.abort(); // 💡 멈춰있는 엔진을 강제로 죽임
+                        } catch(e) {}
+                        resetMicUI();
                     }
                 }, 2000);
 
-                // 3. 마이크 엔진 가동 시도
                 try {
                     recognition.start();
                     if (navigator.vibrate) navigator.vibrate(50);
                 } catch (err) {
-                    debugStatus.innerText = "이미 실행 중이거나 오류 발생";
-                    resetMic();
+                    debugStatus.innerText = "이미 실행 중이거나 초기 오류";
+                    resetMicUI();
                 }
             });
 
@@ -137,23 +136,23 @@
                 const transcript = event.results[0][0].transcript;
                 addChat("나", transcript);
                 sendToBrain(transcript);
-                debugStatus.innerText = "데이터 전송 완료";
+                debugStatus.innerText = "분석 시작...";
             };
 
             recognition.onerror = (event) => {
                 debugStatus.innerText = "에러: " + event.error;
-                resetMic();
+                resetMicUI();
             };
 
-            recognition.onend = () => resetMic();
+            recognition.onend = () => resetMicUI();
 
-            function resetMic() {
+            function resetMicUI() {
                 clearTimeout(watchdogTimer);
                 micBtn.classList.remove('listening');
-                if(!debugStatus.innerText.includes('에러') && !debugStatus.innerText.includes('응답')) {
+                if(!debugStatus.innerText.includes('에러') && !debugStatus.innerText.includes('없음')) {
                    debugStatus.innerText = "마이크를 터치하여 대화 시작";
+                   debugStatus.className = "text-[10px] text-center mb-2 font-bold text-slate-400";
                 }
-                debugStatus.className = "text-[10px] text-center mb-2 font-bold text-slate-400";
             }
         } else {
             micBtn.style.opacity = "0.5";
