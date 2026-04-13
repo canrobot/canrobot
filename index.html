@@ -8,118 +8,50 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap');
-        
         :root { --primary-color: #0ea5e9; --bg-color: #f8fafc; --text-color: #334155; }
-        
-        body { 
-            background-color: var(--bg-color); 
-            color: var(--text-color); 
-            font-family: 'Noto Sans KR', sans-serif; 
-            margin: 0; 
-            height: 100vh;
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden; 
-            -webkit-tap-highlight-color: transparent; 
-        }
-
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Noto Sans KR', sans-serif; margin: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; -webkit-tap-highlight-color: transparent; }
         .title-font { font-family: 'Jua', sans-serif; }
-        
-        .listening { 
-            animation: pulse 1.2s infinite; 
-            background-color: #ef4444 !important; 
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); 
-            color: white !important;
-            transform: scale(1.1);
-        }
+        .listening { animation: pulse 1.2s infinite; background-color: #ef4444 !important; box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); color: white !important; transform: scale(1.1); }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .camera-offline { background-image: repeating-linear-gradient(45deg, #1f2937 25%, transparent 25%, transparent 75%, #1f2937 75%, #1f2937), repeating-linear-gradient(45deg, #1f2937 25%, #111827 25%, #111827 75%, #1f2937 75%, #1f2937); background-position: 0 0, 10px 10px; background-size: 20px 20px; }
-
-        #chat-history { 
-            flex: 1; 
-            overflow-y: auto; 
-            scroll-behavior: smooth;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-
-        footer { 
-            position: relative; 
-            z-index: 50; 
-            background: white; 
-            box-shadow: 0 -4px 10px rgba(0,0,0,0.05); 
-            padding-bottom: env(safe-area-inset-bottom); 
-            flex-shrink: 0;
-        }
-
-        #auth-overlay, #settings-overlay {
-            position: fixed; inset: 0; background: #0ea5e9; z-index: 1000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: white; padding: 20px; text-align: center;
-            transition: all 0.3s ease;
-        }
+        #chat-history { flex: 1; overflow-y: auto; scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
+        footer { position: relative; z-index: 50; background: white; box-shadow: 0 -4px 10px rgba(0,0,0,0.05); padding-bottom: env(safe-area-inset-bottom); flex-shrink: 0; }
+        #auth-overlay, #settings-overlay { position: fixed; inset: 0; background: #0ea5e9; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; padding: 20px; text-align: center; transition: all 0.3s ease; }
         #settings-overlay { background: rgba(15, 23, 42, 0.95); backdrop-blur: 10px; z-index: 1100; overflow-y: auto; display: block; padding-top: 60px; }
-        
-        .pass-input {
-            background: rgba(255,255,255,0.2); border: 2px solid white; border-radius: 12px;
-            padding: 12px 20px; font-size: 24px; color: white; width: 160px; text-align: center;
-            letter-spacing: 8px; outline: none; margin-top: 20px;
-        }
-        .settings-input {
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;
-            padding: 8px 12px; color: white; width: 90%; max-width: 300px; text-align: left; margin-bottom: 8px; outline: none; font-size: 12px;
-        }
+        .pass-input { background: rgba(255,255,255,0.2); border: 2px solid white; border-radius: 12px; padding: 12px 20px; font-size: 24px; color: white; width: 160px; text-align: center; letter-spacing: 8px; outline: none; margin-top: 20px; }
+        .settings-input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 8px 12px; color: white; width: 90%; max-width: 300px; text-align: left; margin-bottom: 8px; outline: none; font-size: 12px; }
         .hidden { display: none !important; }
-
-        @media (min-width: 768px) {
-            #camera-section { max-height: 300px; }
-        }
+        @media (min-width: 768px) { #camera-section { max-height: 400px; } }
     </style>
 </head>
 <body>
 
-    <!-- 🔒 보안 게이트 영역 -->
+    <!-- 🔒 보안 게이트 -->
     <div id="auth-overlay">
-        <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-4 text-4xl">
-            <i class="fas fa-lock"></i>
-        </div>
+        <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-4 text-4xl"><i class="fas fa-lock"></i></div>
         <h2 class="title-font text-2xl mb-1">보안 통제 구역</h2>
         <p class="text-xs opacity-80">사령관 암호를 입력하십시오</p>
         <input type="password" id="pw-input" class="pass-input" maxlength="4" inputmode="numeric" autofocus>
         <button id="pw-btn" class="mt-6 bg-white text-sky-600 px-8 py-3 rounded-full font-bold shadow-lg active:scale-95 transition-transform">인증하기</button>
     </div>
 
-    <!-- ⚙️ 설정 모달 (암호 및 원격 주소 변경) -->
+    <!-- ⚙️ 설정 모달 -->
     <div id="settings-overlay" class="hidden">
         <div class="max-w-md mx-auto flex flex-col items-center">
-            <div class="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4 text-3xl">
-                <i class="fas fa-cog"></i>
-            </div>
+            <div class="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4 text-3xl"><i class="fas fa-cog"></i></div>
             <h2 class="title-font text-2xl mb-6">지휘소 설정</h2>
             
-            <!-- 원격 영상 주소 설정 섹션 -->
             <div class="w-full bg-white/5 p-4 rounded-xl mb-6 border border-white/10">
-                <h3 class="text-sm font-bold text-sky-300 mb-3 text-left"><i class="fas fa-video mr-2"></i>원격 스트리밍 주소 (MJPEG)</h3>
-                
-                <p class="text-[10px] opacity-60 text-left mb-1">고부기 원격 URL</p>
-                <input type="text" id="url-kobuki" class="settings-input" placeholder="http://192.168... 또는 ngrok 주소">
-                
-                <p class="text-[10px] opacity-60 text-left mb-1 mt-2">월이(Wall-E) 원격 URL</p>
-                <input type="text" id="url-walle" class="settings-input" placeholder="http://192.168... 또는 ngrok 주소">
-                
-                <p class="text-[9px] text-amber-300 mt-2 text-left leading-tight">* ngrok 등을 사용해 로컬 8080 포트를 외부로 개방한 주소를 입력하세요.</p>
+                <h3 class="text-sm font-bold text-sky-300 mb-3 text-left"><i class="fas fa-video mr-2"></i>스트리밍 주소</h3>
+                <p class="text-[10px] opacity-60 text-left mb-1">고부기 URL (현재: 192.168.1.60)</p>
+                <div class="flex space-x-2 mb-2">
+                    <input type="text" id="url-kobuki" class="settings-input flex-1 mb-0" placeholder="http://192.168.1.60:8080/stream?topic=/image_raw">
+                    <button onclick="testLink('url-kobuki')" class="bg-sky-600 text-[10px] px-2 rounded-md">테스트</button>
+                </div>
+                <p class="text-[9px] text-amber-300 text-left leading-tight">* 모바일에서 안 보인다면: 주소창 옆 [설정] -> [사이트 설정] -> [안전하지 않은 콘텐츠] -> [허용] 필수!</p>
             </div>
 
-            <!-- 암호 변경 섹션 -->
-            <div class="w-full bg-white/5 p-4 rounded-xl mb-6 border border-white/10">
-                <h3 class="text-sm font-bold text-sky-300 mb-3 text-left"><i class="fas fa-key mr-2"></i>인증 암호 변경</h3>
-                <input type="password" id="current-pw-check" class="settings-input" maxlength="4" placeholder="현재 암호 확인">
-                <input type="password" id="new-pw-input" class="settings-input" maxlength="4" placeholder="새 암호 (4자리)">
-            </div>
-            
             <div class="flex space-x-3 mt-4 mb-10">
                 <button onclick="closeSettings()" class="bg-slate-700 text-white px-8 py-3 rounded-full text-sm font-bold">취소</button>
                 <button id="save-settings-btn" class="bg-emerald-500 text-white px-8 py-3 rounded-full text-sm font-bold shadow-lg">모두 저장</button>
@@ -132,56 +64,48 @@
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner"><i class="fas fa-robot"></i></div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v12.0.0</span></h1>
-                <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">REMOTE COMMAND CENTER</p>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v12.2.0</span></h1>
+                <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">MOBILE COMMAND READY</p>
             </div>
         </div>
         <div class="flex items-center space-x-3">
-            <div class="flex flex-col items-end">
-                <div class="flex items-center space-x-1 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
-                    <div id="status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span class="text-[10px] text-emerald-600 font-bold">LIVE</span>
-                </div>
-                <span id="sync-time" class="text-[8px] text-slate-400 font-mono mt-0.5">READY</span>
-            </div>
-            <button onclick="openSettings()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-colors">
-                <i class="fas fa-cog"></i>
-            </button>
+            <button onclick="openSettings()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200"><i class="fas fa-cog"></i></button>
         </div>
     </header>
 
-    <!-- 2. 실시간 카메라 (반응형 원격 지원) -->
+    <!-- 2. 실시간 카메라 -->
     <section id="camera-section" class="relative w-full bg-slate-900 aspect-video shrink-0 border-b-2 border-slate-800 flex flex-col justify-center items-center camera-offline overflow-hidden">
         <div class="absolute top-2 left-2 z-10">
-            <select id="camera-selector" class="bg-black/60 text-white text-[11px] font-bold py-1 px-2 rounded-md border border-slate-600 backdrop-blur-sm focus:outline-none">
+            <select id="camera-selector" class="bg-black/60 text-white text-[11px] font-bold py-1 px-2 rounded-md border border-slate-600 focus:outline-none">
                 <option value="offline">📺 카메라 선택</option>
-                <option value="kobuki">🐢 고부기 (거실)</option>
-                <option value="walle">🤖 Wall-E (안방)</option>
+                <option value="kobuki">🐢 고부기 (데스크탑 중계)</option>
             </select>
         </div>
         <div class="absolute top-2 right-2 z-10 flex items-center space-x-1">
+            <button id="external-view-btn" class="hidden text-[9px] text-white font-bold bg-sky-600/80 px-2 py-1 rounded" onclick="openExternal()">직통 보기</button>
             <span id="cam-status" class="text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded">NO SIGNAL</span>
         </div>
         
-        <img id="camera-feed" src="" class="w-full h-full object-contain hidden" onerror="handleStreamError()">
+        <img id="camera-feed" src="" class="w-full h-full object-contain hidden" crossorigin="anonymous">
         
         <div id="camera-loading" class="hidden text-white flex flex-col items-center">
             <i class="fas fa-circle-notch fa-spin text-3xl mb-2 text-sky-400"></i>
-            <p class="text-[10px] font-bold tracking-widest">CONNECTING...</p>
+            <p class="text-[10px] font-bold tracking-widest uppercase">Connecting to Bridge...</p>
         </div>
 
-        <div id="camera-offline-icon" class="text-center text-slate-500 opacity-60">
+        <div id="camera-offline-icon" class="text-center text-slate-500 opacity-60 p-6">
             <i class="fas fa-video-slash text-4xl mb-2"></i>
-            <p class="text-xs font-bold tracking-wider">CAMERA OFFLINE</p>
+            <p class="text-xs font-bold tracking-wider mb-2">CAMERA OFFLINE</p>
+            <p class="text-[9px] font-normal leading-relaxed">로봇과 같은 Wi-Fi에 연결되어 있나요?<br>모바일 크롬 보안 설정을 확인해 주세요.</p>
         </div>
     </section>
 
     <!-- 3. 채팅 영역 -->
     <main id="chat-history" class="p-4 space-y-4 bg-slate-50">
         <div class="text-left flex items-start space-x-2">
-            <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shadow-sm mt-1"><i class="fas fa-robot"></i></div>
+            <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm mt-1 shrink-0"><i class="fas fa-robot"></i></div>
             <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%]">
-                사령관님, 원격 지휘소입니다. 🦾<br>집 밖에서도 <b>톱니바퀴</b>를 눌러 로봇의 <b>원격 영상 주소</b>를 설정하고 확인하실 수 있습니다.
+                사령관님, 지휘소 v12.2.0입니다. 🦾<br>모바일에서 영상이 안 보인다면 위쪽 <b>[직통 보기]</b> 버튼을 누르거나 보안 설정을 변경해 보세요.
             </div>
         </div>
     </main>
@@ -189,9 +113,7 @@
     <!-- 4. 하단 입력바 -->
     <footer class="p-3">
         <div class="flex items-center space-x-2 max-w-4xl mx-auto">
-            <button id="mic-btn" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg active:scale-95 transition-all">
-                <i class="fas fa-microphone"></i>
-            </button>
+            <button id="mic-btn" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg active:scale-95 transition-all"><i class="fas fa-microphone"></i></button>
             <div class="flex-1 relative">
                 <input type="text" id="text-input" placeholder="메시지를 입력하세요..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all text-slate-700 shadow-inner">
                 <button id="send-btn" class="absolute right-1 top-1/2 transform -translate-y-1/2 w-10 h-10 flex items-center justify-center text-sky-500 active:scale-90"><i class="fas fa-paper-plane text-lg"></i></button>
@@ -205,18 +127,12 @@
         let audioEnabled = false;
         let isAuthorized = false;
 
-        // 초기 기본 카메라 주소 (로컬)
-        let cameraUrls = {
-            "kobuki": "http://192.168.1.225:8080/stream?topic=/camera/image_raw",
-            "walle": "http://192.168.1.100:8080/stream?topic=/camera/image_raw"
-        };
+        let cameraUrls = { "kobuki": "http://192.168.1.60:8080/stream?topic=/image_raw" };
 
-        // 로컬 스토리지에서 저장된 주소와 비밀번호 불러오기
         let currentMasterPassword = localStorage.getItem('canRobotPassword') || "0314";
         const savedUrls = localStorage.getItem('canRobotCameraUrls');
         if(savedUrls) cameraUrls = JSON.parse(savedUrls);
 
-        // 🔐 인증 시스템
         const authOverlay = document.getElementById('auth-overlay');
         const pwInput = document.getElementById('pw-input');
         const pwBtn = document.getElementById('pw-btn');
@@ -227,9 +143,7 @@
                 authOverlay.classList.add('hidden');
                 window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
                 audioEnabled = true;
-                // 설정창 값 동기화
                 document.getElementById('url-kobuki').value = cameraUrls.kobuki;
-                document.getElementById('url-walle').value = cameraUrls.walle;
             } else {
                 pwInput.value = "";
                 pwInput.placeholder = "오답!";
@@ -240,43 +154,23 @@
         pwBtn.onclick = checkPassword;
         pwInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
 
-        // ⚙️ 설정 관리 로직
         const settingsOverlay = document.getElementById('settings-overlay');
-        const saveSettingsBtn = document.getElementById('save-settings-btn');
-
         function openSettings() { if(isAuthorized) settingsOverlay.classList.remove('hidden'); }
         function closeSettings() { settingsOverlay.classList.add('hidden'); }
 
-        saveSettingsBtn.onclick = () => {
-            const curPw = document.getElementById('current-pw-check').value;
-            const newPw = document.getElementById('new-pw-input').value;
-            const newKobuki = document.getElementById('url-kobuki').value;
-            const newWalle = document.getElementById('url-walle').value;
+        function testLink(id) { window.open(document.getElementById(id).value, '_blank'); }
+        function openExternal() { 
+            const val = document.getElementById('camera-selector').value;
+            if(cameraUrls[val]) window.open(cameraUrls[val], '_blank'); 
+        }
 
-            // 영상 주소 저장
-            cameraUrls.kobuki = newKobuki;
-            cameraUrls.walle = newWalle;
+        document.getElementById('save-settings-btn').onclick = () => {
+            cameraUrls.kobuki = document.getElementById('url-kobuki').value.trim();
             localStorage.setItem('canRobotCameraUrls', JSON.stringify(cameraUrls));
-
-            // 암호 변경 처리
-            if (newPw.length === 4) {
-                if (curPw === currentMasterPassword) {
-                    currentMasterPassword = newPw;
-                    localStorage.setItem('canRobotPassword', newPw);
-                    alert("영상 주소 및 암호가 저장되었습니다.");
-                } else {
-                    alert("영상 주소는 저장되었으나, 현재 암호가 틀려 암호 변경은 실패했습니다.");
-                }
-            } else {
-                alert("영상 주소가 저장되었습니다.");
-            }
-            closeSettings();
-            // 현재 선택된 카메라 주소 갱신을 위해 선택 해제
-            document.getElementById('camera-selector').value = "offline";
-            document.getElementById('camera-selector').dispatchEvent(new Event('change'));
+            alert("설정이 저장되었습니다. 페이지를 새로고침합니다.");
+            location.reload();
         };
 
-        // STT 로직
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
@@ -286,12 +180,8 @@
                 if(!isAuthorized) return;
                 try { recognition.start(); micBtn.classList.add('listening'); } catch (e) { recognition.stop(); }
             };
-            recognition.onresult = (e) => { 
-                const text = e.results[0][0].transcript; 
-                addChat("나", text); 
-                sendToBrain(text); 
-            };
-            recognition.onend = () => document.getElementById('mic-btn').classList.remove('listening');
+            recognition.onresult = (e) => { addChat("나", e.results[0][0].transcript); sendToBrain(e.results[0][0].transcript); };
+            recognition.onend = () => micBtn.classList.remove('listening');
         }
 
         async function sendToBrain(query) {
@@ -304,9 +194,7 @@
             try {
                 const response = await fetch(`${GAS_URL}?action=read&t=${Date.now()}`);
                 const data = (await response.text()).trim();
-                document.getElementById('sync-time').innerText = "Sync: " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
                 if (!data || data === "" || data.includes("ONLINE")) return;
-
                 let msg = data.includes('|') ? data.split('|').pop().trim() : data;
                 if (msg && msg !== lastMsg && msg !== "-" && !/^(D:|A:|CMD:|Event:|OK:)/.test(msg)) {
                     if (lastMsg === "" && (msg.includes("v12") || msg.includes("환영합니다"))) { lastMsg = msg; return; }
@@ -338,20 +226,17 @@
 
         document.getElementById('send-btn').onclick = () => { 
             const textInput = document.getElementById('text-input');
-            if (textInput.value.trim() !== "" && isAuthorized) { 
-                addChat("나", textInput.value); sendToBrain(textInput.value); textInput.value = ""; 
-            } 
+            if (textInput.value.trim() !== "" && isAuthorized) { addChat("나", textInput.value); sendToBrain(textInput.value); textInput.value = ""; } 
         };
         document.getElementById('text-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('send-btn').click(); });
-        
         setInterval(checkResponse, 2000);
 
-        // 📷 카메라 로직 (원격 대응)
         const camSelector = document.getElementById('camera-selector');
         const camFeed = document.getElementById('camera-feed');
         const camLoading = document.getElementById('camera-loading');
         const camOfflineIcon = document.getElementById('camera-offline-icon');
         const camStatus = document.getElementById('cam-status');
+        const externalBtn = document.getElementById('external-view-btn');
 
         camSelector.addEventListener('change', (e) => {
             if(!isAuthorized) return;
@@ -362,6 +247,7 @@
                 camFeed.classList.add('hidden');
                 camLoading.classList.add('hidden');
                 camOfflineIcon.classList.remove('hidden');
+                externalBtn.classList.add('hidden');
                 camStatus.innerText = "NO SIGNAL";
                 camStatus.className = "text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded";
                 camFeed.src = "";
@@ -369,26 +255,25 @@
                 camOfflineIcon.classList.add('hidden');
                 camLoading.classList.remove('hidden');
                 camFeed.classList.add('hidden');
+                externalBtn.classList.remove('hidden');
                 camStatus.innerText = "CONNECTING...";
                 camStatus.className = "text-[9px] text-amber-400 font-mono bg-black/60 px-1.5 py-0.5 rounded animate-pulse";
-                
                 camFeed.src = url;
+                
                 camFeed.onload = () => {
                     camLoading.classList.add('hidden');
                     camFeed.classList.remove('hidden');
-                    camStatus.innerText = "LIVE REMOTE";
+                    camStatus.innerText = "LIVE MOBILE";
                     camStatus.className = "text-[9px] text-emerald-400 font-mono bg-black/60 px-1.5 py-0.5 rounded animate-pulse";
+                };
+                camFeed.onerror = () => {
+                    camFeed.classList.add('hidden');
+                    camOfflineIcon.classList.remove('hidden');
+                    camStatus.innerText = "BLOCKED: SECURITY";
+                    camStatus.className = "text-[9px] text-red-500 font-mono bg-black/60 px-1.5 py-0.5 rounded";
                 };
             }
         });
-
-        function handleStreamError() {
-            camLoading.classList.add('hidden');
-            camFeed.classList.add('hidden');
-            camOfflineIcon.classList.remove('hidden');
-            camStatus.innerText = "ERR: OFFLINE";
-            camStatus.className = "text-[9px] text-red-500 font-mono bg-black/60 px-1.5 py-0.5 rounded";
-        }
     </script>
 </body>
 </html>
