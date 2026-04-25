@@ -44,9 +44,11 @@
             
             <div class="w-full bg-white/5 p-4 rounded-xl mb-6 border border-white/10">
                 <h3 class="text-sm font-bold text-sky-300 mb-3 text-left"><i class="fas fa-video mr-2"></i>스트리밍 주소</h3>
-                <p class="text-[10px] opacity-60 text-left mb-1">고부기 URL (현재: 192.168.1.60)</p>
+                <!-- IP 주소를 192.168.1.225로 변경 -->
+                <p class="text-[10px] opacity-60 text-left mb-1">고부기 URL (현재: 192.168.1.225)</p>
                 <div class="flex space-x-2 mb-2">
-                    <input type="text" id="url-kobuki" class="settings-input flex-1 mb-0" placeholder="http://192.168.1.60:8080/stream?topic=/image_raw">
+                    <!-- IP 주소를 192.168.1.225로 변경 -->
+                    <input type="text" id="url-kobuki" class="settings-input flex-1 mb-0" placeholder="http://192.168.1.225:8080/stream?topic=/image_raw">
                     <button onclick="testLink('url-kobuki')" class="bg-sky-600 text-[10px] px-2 rounded-md">테스트</button>
                 </div>
                 <p class="text-[9px] text-amber-300 text-left leading-tight">* 모바일에서 안 보인다면: 주소창 옆 [설정] -> [사이트 설정] -> [안전하지 않은 콘텐츠] -> [허용] 필수!</p>
@@ -54,7 +56,10 @@
 
             <div class="flex space-x-3 mt-4 mb-10">
                 <button onclick="closeSettings()" class="bg-slate-700 text-white px-8 py-3 rounded-full text-sm font-bold">취소</button>
+                <!-- 설정 저장 버튼 -->
                 <button id="save-settings-btn" class="bg-emerald-500 text-white px-8 py-3 rounded-full text-sm font-bold shadow-lg">모두 저장</button>
+                <!-- 브라우저 캐시(기억) 초기화 버튼 추가 -->
+                <button onclick="clearStorage()" class="bg-red-500 text-white px-8 py-3 rounded-full text-sm font-bold shadow-lg">캐시 초기화</button>
             </div>
         </div>
     </div>
@@ -126,11 +131,14 @@
         let lastMsg = "";
         let audioEnabled = false;
         let isAuthorized = false;
-        let sessionStarted = false; // ✨ 세션 활성화 플래그 (유령 발성 방지 핵심)
+        let sessionStarted = false;
 
-        let cameraUrls = { "kobuki": "http://192.168.1.60:8080/stream?topic=/image_raw" };
+        // IP 주소를 192.168.1.225로 변경
+        let cameraUrls = { "kobuki": "http://192.168.1.225:8080/stream?topic=/image_raw" };
 
         let currentMasterPassword = localStorage.getItem('canRobotPassword') || "0314";
+        
+        // 이전에 저장된 URL이 있으면 불러오기
         const savedUrls = localStorage.getItem('canRobotCameraUrls');
         if(savedUrls) cameraUrls = JSON.parse(savedUrls);
 
@@ -144,6 +152,7 @@
                 authOverlay.classList.add('hidden');
                 window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
                 audioEnabled = true;
+                // 세팅 창에 현재 적용된 URL 표시
                 document.getElementById('url-kobuki').value = cameraUrls.kobuki;
             } else {
                 pwInput.value = "";
@@ -162,147 +171,4 @@
         function testLink(id) { window.open(document.getElementById(id).value, '_blank'); }
         function openExternal() { 
             const val = document.getElementById('camera-selector').value;
-            if(cameraUrls[val]) window.open(cameraUrls[val], '_blank'); 
-        }
-
-        document.getElementById('save-settings-btn').onclick = () => {
-            cameraUrls.kobuki = document.getElementById('url-kobuki').value.trim();
-            localStorage.setItem('canRobotCameraUrls', JSON.stringify(cameraUrls));
-            alert("설정이 저장되었습니다. 페이지를 새로고침합니다.");
-            location.reload();
-        };
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'ko-KR';
-            const micBtn = document.getElementById('mic-btn');
-            micBtn.onclick = () => {
-                if(!isAuthorized) return;
-                try { 
-                    recognition.start(); 
-                    micBtn.classList.add('listening');
-                    sessionStarted = true; // ✨ 음성 버튼 클릭 시 세션 활성화
-                } catch (e) { recognition.stop(); }
-            };
-            recognition.onresult = (e) => { 
-                const text = e.results[0][0].transcript;
-                addChat("나", text); 
-                sendToBrain(text); 
-            };
-            recognition.onend = () => micBtn.classList.remove('listening');
-        }
-
-        async function sendToBrain(query) {
-            if(!isAuthorized) return;
-            sessionStarted = true; // ✨ 명령 전송 시 세션 활성화
-            try { await fetch(`${GAS_URL}?query=${encodeURIComponent(query)}&t=${Date.now()}`, { mode: 'no-cors' }); } catch (e) {}
-        }
-
-        async function checkResponse() {
-            if(!isAuthorized) return;
-            try {
-                const response = await fetch(`${GAS_URL}?action=read&t=${Date.now()}`);
-                const data = (await response.text()).trim();
-                if (!data || data === "" || data.includes("ONLINE")) return;
-                
-                let msg = data.includes('|') ? data.split('|').pop().trim() : data;
-
-                // ✨ [핵심 로직] 세션이 시작되지 않았으면 시트의 현재 값을 lastMsg에 동기화만 하고 종료
-                if (!sessionStarted) {
-                    lastMsg = msg;
-                    return;
-                }
-
-                // 세션 시작 이후 도착한 새로운 대사만 처리
-                if (msg && msg !== lastMsg && msg !== "-" && !/^(D:|A:|CMD:|Event:|OK:)/.test(msg)) {
-                    // 이전 대화 기록이 없었거나, 시트에 있던 대답이 방금 보낸 명령에 대한 것이 아닐 경우를 대비한 필터링
-                    if (lastMsg === "" && (msg.includes("v12") || msg.includes("환영합니다"))) { 
-                        lastMsg = msg; 
-                        return; 
-                    }
-                    addChat("깡통로봇", msg); 
-                    lastMsg = msg;
-                    if(audioEnabled) speak(msg);
-                }
-            } catch (e) {}
-        }
-
-        function speak(text) {
-            const cleanText = text.replace(/[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ.,!?~\'-]/g, '').replace(/치익-|삐빅/g, "").trim();
-            if(!cleanText) return;
-            const utter = new SpeechSynthesisUtterance(cleanText);
-            utter.lang = 'ko-KR'; utter.rate = 1.05; utter.pitch = 1.1;
-            window.speechSynthesis.speak(utter);
-        }
-
-        function addChat(sender, text) {
-            const chatHistory = document.getElementById('chat-history');
-            const div = document.createElement('div');
-            div.className = sender === "나" ? "flex justify-end" : "flex items-start space-x-2 animate-in fade-in slide-in-from-left-2 duration-300";
-            div.innerHTML = sender === "나" 
-                ? `<div class="bg-sky-500 text-white p-3 rounded-2xl rounded-tr-sm text-sm max-w-[85%] shadow-sm">${text}</div>`
-                : `<div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shrink-0"><i class="fas fa-robot"></i></div>
-                   <div class="bg-white border border-slate-200 text-slate-700 p-3 rounded-2xl rounded-tl-sm text-sm max-w-[85%] shadow-sm leading-relaxed">${text}</div>`;
-            chatHistory.appendChild(div);
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-        }
-
-        document.getElementById('send-btn').onclick = () => { 
-            const textInput = document.getElementById('text-input');
-            if (textInput.value.trim() !== "" && isAuthorized) { 
-                sessionStarted = true; // ✨ 전송 버튼 클릭 시 세션 활성화
-                addChat("나", textInput.value); 
-                sendToBrain(textInput.value); 
-                textInput.value = ""; 
-            } 
-        };
-        document.getElementById('text-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('send-btn').click(); });
-        setInterval(checkResponse, 2000);
-
-        const camSelector = document.getElementById('camera-selector');
-        const camFeed = document.getElementById('camera-feed');
-        const camLoading = document.getElementById('camera-loading');
-        const camOfflineIcon = document.getElementById('camera-offline-icon');
-        const camStatus = document.getElementById('cam-status');
-        const externalBtn = document.getElementById('external-view-btn');
-
-        camSelector.addEventListener('change', (e) => {
-            if(!isAuthorized) return;
-            const val = e.target.value;
-            const url = cameraUrls[val];
-
-            if (!url || val === "offline") {
-                camFeed.classList.add('hidden');
-                camLoading.classList.add('hidden');
-                camOfflineIcon.classList.remove('hidden');
-                externalBtn.classList.add('hidden');
-                camStatus.innerText = "NO SIGNAL";
-                camStatus.className = "text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded";
-                camFeed.src = "";
-            } else {
-                camOfflineIcon.classList.add('hidden');
-                camLoading.classList.remove('hidden');
-                camFeed.classList.add('hidden');
-                externalBtn.classList.remove('hidden');
-                camStatus.innerText = "CONNECTING...";
-                camStatus.className = "text-[9px] text-amber-400 font-mono bg-black/60 px-1.5 py-0.5 rounded animate-pulse";
-                camFeed.src = url;
-                
-                camFeed.onload = () => {
-                    camLoading.classList.add('hidden');
-                    camFeed.classList.remove('hidden');
-                    camStatus.innerText = "LIVE MOBILE";
-                    camStatus.className = "text-[9px] text-emerald-400 font-mono bg-black/60 px-1.5 py-0.5 rounded animate-pulse";
-                };
-                camFeed.onerror = () => {
-                    camFeed.classList.add('hidden');
-                    camOfflineIcon.classList.remove('hidden');
-                    camStatus.innerText = "BLOCKED: SECURITY";
-                    camStatus.className = "text-[9px] text-red-500 font-mono bg-black/60 px-1.5 py-0.5 rounded";
-                };
-            }
-        });
-    </script>
-</body>
-</html>
+            if(cameraUrls[val]) window.
