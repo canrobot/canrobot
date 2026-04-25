@@ -136,7 +136,7 @@
         // IP 주소를 192.168.1.225로 변경
         let cameraUrls = { "kobuki": "http://192.168.1.225:8080/stream?topic=/image_raw" };
 
-        let currentMasterPassword = localStorage.getItem('canRobotPassword') || "0314";
+        let currentMasterPassword = localStorage.getItem('canRobotPassword') || "";
         
         // 이전에 저장된 URL이 있으면 불러오기
         const savedUrls = localStorage.getItem('canRobotCameraUrls');
