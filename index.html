@@ -17,24 +17,13 @@
         .camera-offline { background-image: repeating-linear-gradient(45deg, #1f2937 25%, transparent 25%, transparent 75%, #1f2937 75%, #1f2937), repeating-linear-gradient(45deg, #1f2937 25%, #111827 25%, #111827 75%, #1f2937 75%, #1f2937); background-position: 0 0, 10px 10px; background-size: 20px 20px; }
         #chat-history { flex: 1; overflow-y: auto; scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
         footer { position: relative; z-index: 50; background: white; box-shadow: 0 -4px 10px rgba(0,0,0,0.05); padding-bottom: env(safe-area-inset-bottom); flex-shrink: 0; }
-        #auth-overlay, #settings-overlay { position: fixed; inset: 0; background: #0ea5e9; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; padding: 20px; text-align: center; transition: all 0.3s ease; }
-        #settings-overlay { background: rgba(15, 23, 42, 0.95); backdrop-blur: 10px; z-index: 1100; overflow-y: auto; display: block; padding-top: 60px; }
-        .pass-input { background: rgba(255,255,255,0.2); border: 2px solid white; border-radius: 12px; padding: 12px 20px; font-size: 24px; color: white; width: 160px; text-align: center; letter-spacing: 8px; outline: none; margin-top: 20px; }
+        #settings-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); backdrop-blur: 10px; z-index: 1100; overflow-y: auto; display: block; padding-top: 60px; transition: all 0.3s ease; }
         .settings-input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 8px 12px; color: white; width: 90%; max-width: 300px; text-align: left; margin-bottom: 8px; outline: none; font-size: 12px; }
         .hidden { display: none !important; }
         @media (min-width: 768px) { #camera-section { max-height: 400px; } }
     </style>
 </head>
 <body>
-
-    <!-- 🔒 보안 게이트 -->
-    <div id="auth-overlay">
-        <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-4 text-4xl"><i class="fas fa-lock"></i></div>
-        <h2 class="title-font text-2xl mb-1">보안 통제 구역</h2>
-        <p class="text-xs opacity-80">사령관 암호를 입력하십시오</p>
-        <input type="password" id="pw-input" class="pass-input" maxlength="4" inputmode="numeric" autofocus>
-        <button id="pw-btn" class="mt-6 bg-white text-sky-600 px-8 py-3 rounded-full font-bold shadow-lg active:scale-95 transition-transform">인증하기</button>
-    </div>
 
     <!-- ⚙️ 설정 모달 -->
     <div id="settings-overlay" class="hidden">
@@ -44,10 +33,8 @@
             
             <div class="w-full bg-white/5 p-4 rounded-xl mb-6 border border-white/10">
                 <h3 class="text-sm font-bold text-sky-300 mb-3 text-left"><i class="fas fa-video mr-2"></i>스트리밍 주소</h3>
-                <!-- IP 주소를 192.168.1.225로 변경 -->
-                <p class="text-[10px] opacity-60 text-left mb-1">고부기 URL (현재: 192.168.1.225)</p>
+                <p class="text-[10px] opacity-60 text-left mb-1">고부기 URL (현재 설정된 IP)</p>
                 <div class="flex space-x-2 mb-2">
-                    <!-- IP 주소를 192.168.1.225로 변경 -->
                     <input type="text" id="url-kobuki" class="settings-input flex-1 mb-0" placeholder="http://192.168.1.225:8080/stream?topic=/image_raw">
                     <button onclick="testLink('url-kobuki')" class="bg-sky-600 text-[10px] px-2 rounded-md">테스트</button>
                 </div>
@@ -56,9 +43,7 @@
 
             <div class="flex space-x-3 mt-4 mb-10">
                 <button onclick="closeSettings()" class="bg-slate-700 text-white px-8 py-3 rounded-full text-sm font-bold">취소</button>
-                <!-- 설정 저장 버튼 -->
                 <button id="save-settings-btn" class="bg-emerald-500 text-white px-8 py-3 rounded-full text-sm font-bold shadow-lg">모두 저장</button>
-                <!-- 브라우저 캐시(기억) 초기화 버튼 추가 -->
                 <button onclick="clearStorage()" class="bg-red-500 text-white px-8 py-3 rounded-full text-sm font-bold shadow-lg">캐시 초기화</button>
             </div>
         </div>
@@ -69,8 +54,8 @@
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner"><i class="fas fa-robot"></i></div>
             <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v12.2.1</span></h1>
-                <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">MOBILE COMMAND READY</p>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v12.2.2</span></h1>
+                <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">OPEN COMMAND CENTER</p>
             </div>
         </div>
         <div class="flex items-center space-x-3">
@@ -110,7 +95,7 @@
         <div class="text-left flex items-start space-x-2">
             <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm mt-1 shrink-0"><i class="fas fa-robot"></i></div>
             <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%]">
-                사령관님, 지휘소 v12.2.1입니다. 🦾<br>첫 명령을 보내기 전까지는 이전 기록을 읽지 않고 대기합니다.
+                사령관님, 지휘소 v12.2.2입니다. 🦾<br>인증 절차가 해제되었습니다. 즉시 작전 수행이 가능합니다.
             </div>
         </div>
     </main>
@@ -129,46 +114,170 @@
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwDaArFRICsT8FYy5SqlgH63fNtM7GFOu-GZ7R1YE20FIMsfREotYZsIqPgG4EpUMzE/exec";
         let lastMsg = "";
-        let audioEnabled = false;
-        let isAuthorized = false;
+        let audioEnabled = true; // 인증 없이 바로 오디오 활성화
         let sessionStarted = false;
 
-        // IP 주소를 192.168.1.225로 변경
+        // 기본 IP 192.168.1.225 설정
         let cameraUrls = { "kobuki": "http://192.168.1.225:8080/stream?topic=/image_raw" };
-
-        let currentMasterPassword = localStorage.getItem('canRobotPassword') || "";
         
         // 이전에 저장된 URL이 있으면 불러오기
         const savedUrls = localStorage.getItem('canRobotCameraUrls');
         if(savedUrls) cameraUrls = JSON.parse(savedUrls);
 
-        const authOverlay = document.getElementById('auth-overlay');
-        const pwInput = document.getElementById('pw-input');
-        const pwBtn = document.getElementById('pw-btn');
-
-        function checkPassword() {
-            if (pwInput.value === currentMasterPassword) {
-                isAuthorized = true;
-                authOverlay.classList.add('hidden');
-                window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
-                audioEnabled = true;
-                // 세팅 창에 현재 적용된 URL 표시
-                document.getElementById('url-kobuki').value = cameraUrls.kobuki;
-            } else {
-                pwInput.value = "";
-                pwInput.placeholder = "오답!";
-                if (navigator.vibrate) navigator.vibrate(200);
-            }
-        }
-
-        pwBtn.onclick = checkPassword;
-        pwInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
+        // 초기 설정값 세팅창에 반영
+        window.onload = () => {
+            document.getElementById('url-kobuki').value = cameraUrls.kobuki;
+            // 즉시 빈 음성 출력으로 브라우저 오디오 정책 해제 시도
+            try { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); } catch(e) {}
+        };
 
         const settingsOverlay = document.getElementById('settings-overlay');
-        function openSettings() { if(isAuthorized) settingsOverlay.classList.remove('hidden'); }
+        function openSettings() { settingsOverlay.classList.remove('hidden'); }
         function closeSettings() { settingsOverlay.classList.add('hidden'); }
 
         function testLink(id) { window.open(document.getElementById(id).value, '_blank'); }
         function openExternal() { 
             const val = document.getElementById('camera-selector').value;
-            if(cameraUrls[val]) window.
+            if(cameraUrls[val]) window.open(cameraUrls[val], '_blank'); 
+        }
+
+        document.getElementById('save-settings-btn').onclick = () => {
+            cameraUrls.kobuki = document.getElementById('url-kobuki').value.trim();
+            localStorage.setItem('canRobotCameraUrls', JSON.stringify(cameraUrls));
+            alert("설정이 저장되었습니다. 페이지를 새로고침합니다.");
+            location.reload();
+        };
+
+        function clearStorage() {
+            localStorage.removeItem('canRobotCameraUrls');
+            alert("캐시가 초기화되었습니다. 페이지를 새로고침합니다.");
+            location.reload();
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ko-KR';
+            const micBtn = document.getElementById('mic-btn');
+            micBtn.onclick = () => {
+                try { 
+                    recognition.start(); 
+                    micBtn.classList.add('listening');
+                    sessionStarted = true;
+                } catch (e) { recognition.stop(); }
+            };
+            recognition.onresult = (e) => { 
+                const text = e.results[0][0].transcript;
+                addChat("나", text); 
+                sendToBrain(text); 
+            };
+            recognition.onend = () => micBtn.classList.remove('listening');
+        }
+
+        async function sendToBrain(query) {
+            sessionStarted = true;
+            try { await fetch(`${GAS_URL}?query=${encodeURIComponent(query)}&t=${Date.now()}`, { mode: 'no-cors' }); } catch (e) {}
+        }
+
+        async function checkResponse() {
+            try {
+                const response = await fetch(`${GAS_URL}?action=read&t=${Date.now()}`);
+                const data = (await response.text()).trim();
+                if (!data || data === "" || data.includes("ONLINE")) return;
+                
+                let msg = data.includes('|') ? data.split('|').pop().trim() : data;
+
+                if (!sessionStarted) {
+                    lastMsg = msg;
+                    return;
+                }
+
+                if (msg && msg !== lastMsg && msg !== "-" && !/^(D:|A:|CMD:|Event:|OK:)/.test(msg)) {
+                    if (lastMsg === "" && (msg.includes("v12") || msg.includes("환영합니다"))) { 
+                        lastMsg = msg; 
+                        return; 
+                    }
+                    addChat("깡통로봇", msg); 
+                    lastMsg = msg;
+                    if(audioEnabled) speak(msg);
+                }
+            } catch (e) {}
+        }
+
+        function speak(text) {
+            const cleanText = text.replace(/[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ.,!?~\'-]/g, '').replace(/치익-|삐빅/g, "").trim();
+            if(!cleanText) return;
+            const utter = new SpeechSynthesisUtterance(cleanText);
+            utter.lang = 'ko-KR'; utter.rate = 1.05; utter.pitch = 1.1;
+            window.speechSynthesis.speak(utter);
+        }
+
+        function addChat(sender, text) {
+            const chatHistory = document.getElementById('chat-history');
+            const div = document.createElement('div');
+            div.className = sender === "나" ? "flex justify-end" : "flex items-start space-x-2 animate-in fade-in slide-in-from-left-2 duration-300";
+            div.innerHTML = sender === "나" 
+                ? `<div class="bg-sky-500 text-white p-3 rounded-2xl rounded-tr-sm text-sm max-w-[85%] shadow-sm">${text}</div>`
+                : `<div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shrink-0"><i class="fas fa-robot"></i></div>
+                   <div class="bg-white border border-slate-200 text-slate-700 p-3 rounded-2xl rounded-tl-sm text-sm max-w-[85%] shadow-sm leading-relaxed">${text}</div>`;
+            chatHistory.appendChild(div);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        document.getElementById('send-btn').onclick = () => { 
+            const textInput = document.getElementById('text-input');
+            if (textInput.value.trim() !== "") { 
+                sessionStarted = true;
+                addChat("나", textInput.value); 
+                sendToBrain(textInput.value); 
+                textInput.value = ""; 
+            } 
+        };
+        document.getElementById('text-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('send-btn').click(); });
+        setInterval(checkResponse, 2000);
+
+        const camSelector = document.getElementById('camera-selector');
+        const camFeed = document.getElementById('camera-feed');
+        const camLoading = document.getElementById('camera-loading');
+        const camOfflineIcon = document.getElementById('camera-offline-icon');
+        const camStatus = document.getElementById('cam-status');
+        const externalBtn = document.getElementById('external-view-btn');
+
+        camSelector.addEventListener('change', (e) => {
+            const val = e.target.value;
+            const url = cameraUrls[val];
+
+            if (!url || val === "offline") {
+                camFeed.classList.add('hidden');
+                camLoading.classList.add('hidden');
+                camOfflineIcon.classList.remove('hidden');
+                externalBtn.classList.add('hidden');
+                camStatus.innerText = "NO SIGNAL";
+                camStatus.className = "text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded";
+                camFeed.src = "";
+            } else {
+                camOfflineIcon.classList.add('hidden');
+                camLoading.classList.remove('hidden');
+                camFeed.classList.add('hidden');
+                externalBtn.classList.remove('hidden');
+                camStatus.innerText = "CONNECTING...";
+                camStatus.className = "text-[9px] text-amber-400 font-mono bg-black/60 px-1.5 py-0.5 rounded animate-pulse";
+                camFeed.src = url;
+                
+                camFeed.onload = () => {
+                    camLoading.classList.add('hidden');
+                    camFeed.classList.remove('hidden');
+                    camStatus.innerText = "LIVE MOBILE";
+                    camStatus.className = "text-[9px] text-emerald-400 font-mono bg-black/60 px-1.5 py-0.5 rounded animate-pulse";
+                };
+                camFeed.onerror = () => {
+                    camFeed.classList.add('hidden');
+                    camOfflineIcon.classList.remove('hidden');
+                    camStatus.innerText = "BLOCKED: SECURITY";
+                    camStatus.className = "text-[9px] text-red-500 font-mono bg-black/60 px-1.5 py-0.5 rounded";
+                };
+            }
+        });
+    </script>
+</body>
+</html>
