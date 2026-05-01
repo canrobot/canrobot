@@ -9,105 +9,275 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap');
         :root { --primary-color: #0ea5e9; --bg-color: #f8fafc; --text-color: #334155; }
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Noto Sans KR', sans-serif; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Noto Sans KR', sans-serif; margin: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; -webkit-tap-highlight-color: transparent; }
         .title-font { font-family: 'Jua', sans-serif; }
-        
-        /* ✨ 인사 모드 애니메이션 */
-        .welcome-active { background: linear-gradient(135deg, #0ea5e9, #6366f1); animation: bg-pulse 2s infinite; }
-        @keyframes bg-pulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.2); } }
-        
-        .sparkle-eyes { animation: blink 0.5s infinite; color: #fbbf24 !important; text-shadow: 0 0 15px rgba(251, 191, 36, 0.8); }
-        @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1.1); } 50% { opacity: 0.5; transform: scale(0.9); } }
-
-        #chat-history { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+        .listening { animation: pulse 1.2s infinite; background-color: #ef4444 !important; box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); color: white !important; transform: scale(1.1); }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .camera-offline { background-image: repeating-linear-gradient(45deg, #1f2937 25%, transparent 25%, transparent 75%, #1f2937 75%, #1f2937), repeating-linear-gradient(45deg, #1f2937 25%, #111827 25%, #111827 75%, #1f2937 75%, #1f2937); background-position: 0 0, 10px 10px; background-size: 20px 20px; }
+        #chat-history { flex: 1; overflow-y: auto; scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
+        footer { position: relative; z-index: 50; background: white; box-shadow: 0 -4px 10px rgba(0,0,0,0.05); padding-bottom: env(safe-area-inset-bottom); flex-shrink: 0; }
+        #settings-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); backdrop-blur: 10px; z-index: 1100; overflow-y: auto; display: block; padding-top: 60px; transition: all 0.3s ease; }
+        .settings-input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 8px 12px; color: white; width: 90%; max-width: 300px; text-align: left; margin-bottom: 8px; outline: none; font-size: 12px; }
         .hidden { display: none !important; }
+        @media (min-width: 768px) { #camera-section { max-height: 400px; } }
     </style>
 </head>
 <body>
 
-    <!-- 1. 헤더 (상태에 따라 배경색 변경) -->
-    <header id="main-header" class="px-4 py-3 border-b border-sky-200 bg-white flex justify-between items-center transition-colors duration-500 shrink-0 z-50">
-        <div class="flex items-center space-x-3">
-            <div id="robot-icon" class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner">
-                <i class="fas fa-robot"></i>
+    <!-- ⚙️ 설정 모달 -->
+    <div id="settings-overlay" class="hidden">
+        <div class="max-w-md mx-auto flex flex-col items-center">
+            <div class="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4 text-3xl"><i class="fas fa-cog"></i></div>
+            <h2 class="title-font text-2xl mb-6">지휘소 설정</h2>
+            
+            <div class="w-full bg-white/5 p-4 rounded-xl mb-6 border border-white/10">
+                <h3 class="text-sm font-bold text-sky-300 mb-3 text-left"><i class="fas fa-video mr-2"></i>스트리밍 주소</h3>
+                <p class="text-[10px] opacity-60 text-left mb-1">고부기 URL (현재 설정된 IP)</p>
+                <div class="flex space-x-2 mb-2">
+                    <input type="text" id="url-kobuki" class="settings-input flex-1 mb-0" placeholder="http://192.168.1.225:8080/stream?topic=/image_raw">
+                    <button onclick="testLink('url-kobuki')" class="bg-sky-600 text-[10px] px-2 rounded-md">테스트</button>
+                </div>
+                <p class="text-[9px] text-amber-300 text-left leading-tight">* 모바일에서 안 보인다면: 주소창 옆 [설정] -> [사이트 설정] -> [안전하지 않은 콘텐츠] -> [허용] 필수!</p>
             </div>
-            <div>
-                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span id="ver-tag" class="text-[10px] text-slate-300 font-sans align-top">v12.2.3</span></h1>
-                <p id="status-text" class="text-[10px] text-slate-400 font-bold leading-none mt-1">SYSTEM READY</p>
+
+            <div class="flex space-x-3 mt-4 mb-10">
+                <button onclick="closeSettings()" class="bg-slate-700 text-white px-8 py-3 rounded-full text-sm font-bold">취소</button>
+                <button id="save-settings-btn" class="bg-emerald-500 text-white px-8 py-3 rounded-full text-sm font-bold shadow-lg">모두 저장</button>
+                <button onclick="clearStorage()" class="bg-red-500 text-white px-8 py-3 rounded-full text-sm font-bold shadow-lg">캐시 초기화</button>
             </div>
         </div>
-        <button onclick="openSettings()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center"><i class="fas fa-cog"></i></button>
+    </div>
+
+    <!-- 1. 헤더 -->
+    <header class="px-4 py-3 border-b border-sky-200 bg-white flex justify-between items-center shrink-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-xl shadow-inner"><i class="fas fa-robot"></i></div>
+            <div>
+                <h1 class="title-font text-2xl text-sky-600 leading-none">깡통로봇 <span class="text-[10px] text-slate-300 font-sans align-top">v12.2.2</span></h1>
+                <p class="text-[10px] text-slate-400 font-bold leading-none mt-1">OPEN COMMAND CENTER</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="openSettings()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200"><i class="fas fa-cog"></i></button>
+        </div>
     </header>
 
     <!-- 2. 실시간 카메라 -->
-    <section class="relative w-full bg-slate-900 aspect-video shrink-0 border-b-2 border-slate-800 flex justify-center items-center overflow-hidden">
-        <div id="welcome-banner" class="hidden absolute inset-0 z-20 bg-black/40 flex flex-col items-center justify-center text-white p-4">
-            <div class="text-5xl mb-3 sparkle-eyes"><i class="fas fa-stars"></i> ✨ <i class="fas fa-stars"></i></div>
-            <h2 class="title-font text-3xl">인사 모드 가동!</h2>
-            <p class="text-sm opacity-80">현관으로 마중 나가는 중입니다...</p>
+    <section id="camera-section" class="relative w-full bg-slate-900 aspect-video shrink-0 border-b-2 border-slate-800 flex flex-col justify-center items-center camera-offline overflow-hidden">
+        <div class="absolute top-2 left-2 z-10">
+            <select id="camera-selector" class="bg-black/60 text-white text-[11px] font-bold py-1 px-2 rounded-md border border-slate-600 focus:outline-none">
+                <option value="offline">📺 카메라 선택</option>
+                <option value="kobuki">🐢 고부기 (데스크탑 중계)</option>
+            </select>
         </div>
-        <img id="camera-feed" src="" class="w-full h-full object-contain hidden">
-        <div class="text-slate-500 text-xs text-center"><i class="fas fa-video-slash text-3xl mb-2"></i><br>카메라를 연결해 주세요</div>
+        <div class="absolute top-2 right-2 z-10 flex items-center space-x-1">
+            <button id="external-view-btn" class="hidden text-[9px] text-white font-bold bg-sky-600/80 px-2 py-1 rounded" onclick="openExternal()">직통 보기</button>
+            <span id="cam-status" class="text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded">NO SIGNAL</span>
+        </div>
+        
+        <img id="camera-feed" src="" class="w-full h-full object-contain hidden" crossorigin="anonymous">
+        
+        <div id="camera-loading" class="hidden text-white flex flex-col items-center">
+            <i class="fas fa-circle-notch fa-spin text-3xl mb-2 text-sky-400"></i>
+            <p class="text-[10px] font-bold tracking-widest uppercase">Connecting to Bridge...</p>
+        </div>
+
+        <div id="camera-offline-icon" class="text-center text-slate-500 opacity-60 p-6">
+            <i class="fas fa-video-slash text-4xl mb-2"></i>
+            <p class="text-xs font-bold tracking-wider mb-2">CAMERA OFFLINE</p>
+            <p class="text-[9px] font-normal leading-relaxed">로봇과 같은 Wi-Fi에 연결되어 있나요?<br>모바일 크롬 보안 설정을 확인해 주세요.</p>
+        </div>
     </section>
 
     <!-- 3. 채팅 영역 -->
-    <main id="chat-history" class="p-4 space-y-4 bg-slate-50"></main>
+    <main id="chat-history" class="p-4 space-y-4 bg-slate-50">
+        <div class="text-left flex items-start space-x-2">
+            <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm mt-1 shrink-0"><i class="fas fa-robot"></i></div>
+            <div class="inline-block p-3 rounded-2xl rounded-tl-sm text-sm bg-white border border-slate-200 text-slate-700 shadow-sm max-w-[85%]">
+                사령관님, 지휘소 v12.2.2입니다. 🦾<br>인증 절차가 해제되었습니다. 즉시 작전 수행이 가능합니다.
+            </div>
+        </div>
+    </main>
 
-    <footer class="p-3 bg-white border-t">
+    <!-- 4. 하단 입력바 -->
+    <footer class="p-3">
         <div class="flex items-center space-x-2 max-w-4xl mx-auto">
-            <button id="mic-btn" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg"><i class="fas fa-microphone"></i></button>
-            <input type="text" id="text-input" placeholder="명령을 입력하세요..." class="flex-1 bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-sm">
+            <button id="mic-btn" class="w-14 h-14 shrink-0 rounded-full bg-sky-500 flex items-center justify-center text-white text-2xl shadow-lg active:scale-95 transition-all"><i class="fas fa-microphone"></i></button>
+            <div class="flex-1 relative">
+                <input type="text" id="text-input" placeholder="메시지를 입력하세요..." class="w-full bg-slate-50 border border-slate-300 rounded-2xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition-all text-slate-700 shadow-inner">
+                <button id="send-btn" class="absolute right-1 top-1/2 transform -translate-y-1/2 w-10 h-10 flex items-center justify-center text-sky-500 active:scale-90"><i class="fas fa-paper-plane text-lg"></i></button>
+            </div>
         </div>
     </footer>
 
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwDaArFRICsT8FYy5SqlgH63fNtM7GFOu-GZ7R1YE20FIMsfREotYZsIqPgG4EpUMzE/exec";
         let lastMsg = "";
+        let audioEnabled = true; // 인증 없이 바로 오디오 활성화
+        let sessionStarted = false;
 
-        async function checkStatus() {
+        // 기본 IP 192.168.1.225 설정
+        let cameraUrls = { "kobuki": "http://192.168.1.225:8080/stream?topic=/image_raw" };
+        
+        // 이전에 저장된 URL이 있으면 불러오기
+        const savedUrls = localStorage.getItem('canRobotCameraUrls');
+        if(savedUrls) cameraUrls = JSON.parse(savedUrls);
+
+        // 초기 설정값 세팅창에 반영
+        window.onload = () => {
+            document.getElementById('url-kobuki').value = cameraUrls.kobuki;
+            // 즉시 빈 음성 출력으로 브라우저 오디오 정책 해제 시도
+            try { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); } catch(e) {}
+        };
+
+        const settingsOverlay = document.getElementById('settings-overlay');
+        function openSettings() { settingsOverlay.classList.remove('hidden'); }
+        function closeSettings() { settingsOverlay.classList.add('hidden'); }
+
+        function testLink(id) { window.open(document.getElementById(id).value, '_blank'); }
+        function openExternal() { 
+            const val = document.getElementById('camera-selector').value;
+            if(cameraUrls[val]) window.open(cameraUrls[val], '_blank'); 
+        }
+
+        document.getElementById('save-settings-btn').onclick = () => {
+            cameraUrls.kobuki = document.getElementById('url-kobuki').value.trim();
+            localStorage.setItem('canRobotCameraUrls', JSON.stringify(cameraUrls));
+            alert("설정이 저장되었습니다. 페이지를 새로고침합니다.");
+            location.reload();
+        };
+
+        function clearStorage() {
+            localStorage.removeItem('canRobotCameraUrls');
+            alert("캐시가 초기화되었습니다. 페이지를 새로고침합니다.");
+            location.reload();
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ko-KR';
+            const micBtn = document.getElementById('mic-btn');
+            micBtn.onclick = () => {
+                try { 
+                    recognition.start(); 
+                    micBtn.classList.add('listening');
+                    sessionStarted = true;
+                } catch (e) { recognition.stop(); }
+            };
+            recognition.onresult = (e) => { 
+                const text = e.results[0][0].transcript;
+                addChat("나", text); 
+                sendToBrain(text); 
+            };
+            recognition.onend = () => micBtn.classList.remove('listening');
+        }
+
+        async function sendToBrain(query) {
+            sessionStarted = true;
+            try { await fetch(`${GAS_URL}?query=${encodeURIComponent(query)}&t=${Date.now()}`, { mode: 'no-cors' }); } catch (e) {}
+        }
+
+        async function checkResponse() {
             try {
-                const response = await fetch(`${GAS_URL}?action=read&row=21&t=${Date.now()}`);
+                const response = await fetch(`${GAS_URL}?action=read&t=${Date.now()}`);
                 const data = (await response.text()).trim();
-                if (!data) return;
-
-                const msg = data.includes('|') ? data.split('|').pop().strip() : data;
+                if (!data || data === "" || data.includes("ONLINE")) return;
                 
-                // UI 업데이트 (Welcome Mode 여부 판단)
-                const header = document.getElementById('main-header');
-                const robotIcon = document.getElementById('robot-icon');
-                const banner = document.getElementById('welcome-banner');
-                const statusText = document.getElementById('status-text');
+                let msg = data.includes('|') ? data.split('|').pop().trim() : data;
 
-                if (msg.includes("Welcome Mode")) {
-                    header.classList.add('welcome-active');
-                    robotIcon.querySelector('i').className = "fas fa-star sparkle-eyes";
-                    banner.classList.remove('hidden');
-                    statusText.innerText = "GREETING MISSION IN PROGRESS";
-                } else {
-                    header.classList.remove('welcome-active');
-                    robotIcon.querySelector('i').className = "fas fa-robot";
-                    banner.classList.add('hidden');
-                    statusText.innerText = msg.includes("StandBy") ? "IDLE - WAITING COMMAND" : "ONLINE";
+                if (!sessionStarted) {
+                    lastMsg = msg;
+                    return;
                 }
 
-                if (msg !== lastMsg && !msg.includes("Welcome Mode") && msg !== "-") {
-                    addChat("꼬부기", msg);
+                if (msg && msg !== lastMsg && msg !== "-" && !/^(D:|A:|CMD:|Event:|OK:)/.test(msg)) {
+                    if (lastMsg === "" && (msg.includes("v12") || msg.includes("환영합니다"))) { 
+                        lastMsg = msg; 
+                        return; 
+                    }
+                    addChat("깡통로봇", msg); 
                     lastMsg = msg;
+                    if(audioEnabled) speak(msg);
                 }
             } catch (e) {}
         }
 
-        function addChat(sender, text) {
-            const history = document.getElementById('chat-history');
-            const div = document.createElement('div');
-            div.className = "flex items-start space-x-2";
-            div.innerHTML = `<div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shrink-0"><i class="fas fa-robot"></i></div>
-                             <div class="bg-white border border-slate-200 text-slate-700 p-3 rounded-2xl rounded-tl-sm text-sm max-w-[85%]">${text}</div>`;
-            history.appendChild(div);
-            history.scrollTop = history.scrollHeight;
+        function speak(text) {
+            const cleanText = text.replace(/[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ.,!?~\'-]/g, '').replace(/치익-|삐빅/g, "").trim();
+            if(!cleanText) return;
+            const utter = new SpeechSynthesisUtterance(cleanText);
+            utter.lang = 'ko-KR'; utter.rate = 1.05; utter.pitch = 1.1;
+            window.speechSynthesis.speak(utter);
         }
 
-        setInterval(checkStatus, 2000);
+        function addChat(sender, text) {
+            const chatHistory = document.getElementById('chat-history');
+            const div = document.createElement('div');
+            div.className = sender === "나" ? "flex justify-end" : "flex items-start space-x-2 animate-in fade-in slide-in-from-left-2 duration-300";
+            div.innerHTML = sender === "나" 
+                ? `<div class="bg-sky-500 text-white p-3 rounded-2xl rounded-tr-sm text-sm max-w-[85%] shadow-sm">${text}</div>`
+                : `<div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 text-sm shrink-0"><i class="fas fa-robot"></i></div>
+                   <div class="bg-white border border-slate-200 text-slate-700 p-3 rounded-2xl rounded-tl-sm text-sm max-w-[85%] shadow-sm leading-relaxed">${text}</div>`;
+            chatHistory.appendChild(div);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        document.getElementById('send-btn').onclick = () => { 
+            const textInput = document.getElementById('text-input');
+            if (textInput.value.trim() !== "") { 
+                sessionStarted = true;
+                addChat("나", textInput.value); 
+                sendToBrain(textInput.value); 
+                textInput.value = ""; 
+            } 
+        };
+        document.getElementById('text-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('send-btn').click(); });
+        setInterval(checkResponse, 2000);
+
+        const camSelector = document.getElementById('camera-selector');
+        const camFeed = document.getElementById('camera-feed');
+        const camLoading = document.getElementById('camera-loading');
+        const camOfflineIcon = document.getElementById('camera-offline-icon');
+        const camStatus = document.getElementById('cam-status');
+        const externalBtn = document.getElementById('external-view-btn');
+
+        camSelector.addEventListener('change', (e) => {
+            const val = e.target.value;
+            const url = cameraUrls[val];
+
+            if (!url || val === "offline") {
+                camFeed.classList.add('hidden');
+                camLoading.classList.add('hidden');
+                camOfflineIcon.classList.remove('hidden');
+                externalBtn.classList.add('hidden');
+                camStatus.innerText = "NO SIGNAL";
+                camStatus.className = "text-[9px] text-red-400 font-mono bg-black/60 px-1.5 py-0.5 rounded";
+                camFeed.src = "";
+            } else {
+                camOfflineIcon.classList.add('hidden');
+                camLoading.classList.remove('hidden');
+                camFeed.classList.add('hidden');
+                externalBtn.classList.remove('hidden');
+                camStatus.innerText = "CONNECTING...";
+                camStatus.className = "text-[9px] text-amber-400 font-mono bg-black/60 px-1.5 py-0.5 rounded animate-pulse";
+                camFeed.src = url;
+                
+                camFeed.onload = () => {
+                    camLoading.classList.add('hidden');
+                    camFeed.classList.remove('hidden');
+                    camStatus.innerText = "LIVE MOBILE";
+                    camStatus.className = "text-[9px] text-emerald-400 font-mono bg-black/60 px-1.5 py-0.5 rounded animate-pulse";
+                };
+                camFeed.onerror = () => {
+                    camFeed.classList.add('hidden');
+                    camOfflineIcon.classList.remove('hidden');
+                    camStatus.innerText = "BLOCKED: SECURITY";
+                    camStatus.className = "text-[9px] text-red-500 font-mono bg-black/60 px-1.5 py-0.5 rounded";
+                };
+            }
+        });
     </script>
 </body>
 </html>
